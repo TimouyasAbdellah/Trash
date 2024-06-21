@@ -1,0 +1,193 @@
+D'accord, nous allons ajuster le code pour que le bouton "Add Child" fonctionne correctement pour ajouter des enfants, petits-enfants et arrière-petits-enfants en fonction de la ligne sélectionnée. Il ne sera pas possible d'ajouter des enfants aux arrière-petits-enfants.
+
+### 1. HTML pour le Tree Table
+
+Modifiez le fichier `tree-table.component.html` comme suit :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="selectedRowIndex === null || selectedRowIndex === 0">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="selectedRowIndex === null || selectedRowIndex === dataSource.length - 1">Move Down</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="selectedRowIndex === null && selectedChildIndex === null">Add Child</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let i = index">
+      <tr>
+        <td>
+          <input type="checkbox" (change)="selectRow(i)" [checked]="selectedRowIndex === i">
+          {{element.name}}
+        </td>
+        <td>{{element.weight}}</td>
+        <td>{{element.symbol}}</td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let j = index">
+          <tr>
+            <td>
+              <input type="checkbox" (change)="selectRow(i, j)" [checked]="selectedChildIndex?.parentIndex === i && selectedChildIndex?.childIndex === j">
+              &nbsp;&nbsp;&nbsp;{{child.name}}
+            </td>
+            <td>{{child.weight}}</td>
+            <td>{{child.symbol}}</td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let k = index">
+              <tr>
+                <td>
+                  <input type="checkbox" (change)="selectRow(i, j, k)" [checked]="selectedGrandChildIndex?.parentIndex === i && selectedGrandChildIndex?.childIndex === j && selectedGrandChildIndex?.grandChildIndex === k">
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{grandChild.name}}
+                </td>
+                <td>{{grandChild.weight}}</td>
+                <td>{{grandChild.symbol}}</td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### 2. TypeScript pour le Tree Table
+
+Modifiez le fichier `tree-table.component.ts` pour gérer correctement la sélection et l'ajout des enfants :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+  selectedRowIndex: number | null = null;
+  selectedChildIndex: { parentIndex: number, childIndex: number } | null = null;
+  selectedGrandChildIndex: { parentIndex: number, childIndex: number, grandChildIndex: number } | null = null;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+  }
+
+  addChild() {
+    const newChild: PeriodicElement = {
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (this.selectedGrandChildIndex !== null) {
+      // Do nothing, adding a child to a grandchild is not allowed
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else if (this.selectedRowIndex !== null) {
+      this.dataSource[this.selectedRowIndex].children = this.dataSource[this.selectedRowIndex].children || [];
+      this.dataSource[this.selectedRowIndex].children!.push(newChild);
+    }
+  }
+
+  selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    this.selectedRowIndex = parentIndex;
+    this.selectedChildIndex = childIndex !== undefined ? { parentIndex, childIndex } : null;
+    this.selectedGrandChildIndex = (childIndex !== undefined && grandChildIndex !== undefined) ? { parentIndex, childIndex, grandChildIndex } : null;
+  }
+
+  moveUp() {
+    if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+    }
+  }
+
+  moveDown() {
+    if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+    }
+  }
+}
+```
+
+### Explication
+
+1. **Boutons en haut du tableau** :
+   - Les boutons "Move Up", "Move Down", et "Add Child" sont ajoutés en haut du tableau. Ils sont désactivés si aucune ligne n'est sélectionnée ou si la ligne est déjà en haut ou en bas.
+
+2. **Méthode `selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number)`** :
+   - Cette méthode est appelée lorsqu'une ligne est sélectionnée via une case à cocher. Elle met à jour l'index de la ligne sélectionnée (`selectedRowIndex`), ainsi que les indices des enfants et petits-enfants sélectionnés, si applicable (`selectedChildIndex` et `selectedGrandChildIndex`).
+
+3. **Méthode `addChild()`** :
+   - Cette méthode ajoute un nouvel enfant à la ligne sélectionnée. Si un grand-enfant est sélectionné, elle ne fait rien (ajouter des enfants aux arrière-petits-enfants n'est pas permis).
+
+4. **Méthodes de déplacement `moveUp()` et `moveDown()`** :
+   - `moveUp()`: Déplace la ligne sélectionnée vers le haut.
+   - `moveDown()`: Déplace la ligne sélectionnée vers le bas.
+
+En suivant ces étapes, vous devriez obtenir un tableau avec des boutons en haut pour ajouter des lignes et
