@@ -1,0 +1,164 @@
+Pour déplacer les lignes de manière correcte, nous devons ajuster les méthodes `moveUp` et `moveDown` pour qu'elles déplacent également les enfants et petits-enfants si une ligne enfant ou petit-enfant est sélectionnée.
+
+### TypeScript pour le Tree Table (Mise à jour)
+
+Modifiez le fichier `tree-table.component.ts` pour gérer correctement le déplacement des lignes sélectionnées, que ce soit des parents, des enfants ou des petits-enfants :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+  selectedRowIndex: number | null = null;
+  selectedChildIndex: { parentIndex: number, childIndex: number } | null = null;
+  selectedGrandChildIndex: { parentIndex: number, childIndex: number, grandChildIndex: number } | null = null;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+  }
+
+  addChild() {
+    const newChild: PeriodicElement = {
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (this.selectedGrandChildIndex !== null) {
+      // Do nothing, adding a child to a grandchild is not allowed
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else if (this.selectedRowIndex !== null) {
+      this.dataSource[this.selectedRowIndex].children = this.dataSource[this.selectedRowIndex].children || [];
+      this.dataSource[this.selectedRowIndex].children!.push(newChild);
+    }
+  }
+
+  selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    this.selectedRowIndex = parentIndex;
+    this.selectedChildIndex = childIndex !== undefined ? { parentIndex, childIndex } : null;
+    this.selectedGrandChildIndex = (childIndex !== undefined && grandChildIndex !== undefined) ? { parentIndex, childIndex, grandChildIndex } : null;
+  }
+
+  moveUp() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex--;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex - 1];
+        this.dataSource[parentIndex].children![childIndex - 1] = temp;
+        this.selectedChildIndex.childIndex--;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+    }
+  }
+
+  moveDown() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex < this.dataSource[parentIndex].children![childIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex++;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex < this.dataSource[parentIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex + 1];
+        this.dataSource[parentIndex].children![childIndex + 1] = temp;
+        this.selectedChildIndex.childIndex++;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+    }
+  }
+}
+```
+
+### Explication des modifications
+
+1. **Méthodes `moveUp()` et `moveDown()`** :
+   - Les méthodes ont été modifiées pour gérer les déplacements des lignes sélectionnées, que ce soit des parents, des enfants ou des petits-enfants.
+   - **`moveUp()`** : Déplace l'élément sélectionné vers le haut, que ce soit un parent, un enfant ou un petit-enfant.
+   - **`moveDown()`** : Déplace l'élément sélectionné vers le bas, que ce soit un parent, un enfant ou un petit-enfant.
+
+2. **Ajout de vérifications** :
+   - Les vérifications ont été ajoutées pour s'assurer que les déplacements ne se font que si la ligne n'est pas déjà en haut (pour `moveUp()`) ou en bas (pour `moveDown()`).
+
+3. **Gestion des index sélectionnés** :
+   - Les index sélectionnés sont mis à jour correctement après le déplacement des lignes.
+
+Avec ces ajustements, les fonctionnalités de déplacement des lignes devraient fonctionner correctement pour les parents, les enfants et les petits-enfants, tout en empêchant l'ajout de nouveaux enfants aux arrière-petits-enfants.
