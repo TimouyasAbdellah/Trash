@@ -1,0 +1,77 @@
+Sure, let's continue from where we left off with the TypeScript code:
+
+```typescript
+      childIndex].children![grandChildIndex - 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex--;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex - 1];
+        this.dataSource[parentIndex].children![childIndex - 1] = temp;
+        this.selectedChildIndex.childIndex--;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+    }
+  }
+
+  moveDown() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex < this.dataSource[parentIndex].children![childIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex++;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex < this.dataSource[parentIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex + 1];
+        this.dataSource[parentIndex].children![childIndex + 1] = temp;
+        this.selectedChildIndex.childIndex++;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+    }
+  }
+
+  deleteRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex!].children!.splice(grandChildIndex, 1);
+    } else if (childIndex !== undefined) {
+      this.dataSource[parentIndex].children!.splice(childIndex, 1);
+    } else {
+      this.dataSource.splice(parentIndex, 1);
+    }
+
+    // Reset selected indexes after deletion
+    this.selectedRowIndex = null;
+    this.selectedChildIndex = null;
+    this.selectedGrandChildIndex = null;
+  }
+}
+```
+
+### Explications de la méthode `deleteRow`
+
+- **`deleteRow`**: Cette méthode permet de supprimer une ligne de la table en fonction des index de parent, enfant et arrière-petit-enfant spécifiés.
+  - Si `grandChildIndex` est défini, cela signifie que nous voulons supprimer un arrière-petit-enfant spécifique.
+  - Si `childIndex` est défini mais `grandChildIndex` n'est pas défini, cela signifie que nous voulons supprimer un enfant avec tous ses arrière-petits-enfants.
+  - Si ni `childIndex` ni `grandChildIndex` ne sont définis, cela signifie que nous voulons supprimer un parent avec tous ses enfants et arrière-petits-enfants.
+
+### HTML mis à jour
+
+- **Suppression d'une ligne**: Un bouton de suppression a été ajouté à chaque ligne de la table. Lorsqu'il est cliqué, il appelle la méthode `deleteRow` avec les index appropriés pour supprimer la ligne correspondante.
+
+Avec ces modifications, vous avez maintenant une fonctionnalité complète pour ajouter des lignes, ajouter des enfants, déplacer les lignes sélectionnées vers le haut ou vers le bas, et supprimer des lignes avec des enfants et des arrière-petits-enfants, le tout géré à travers des boutons dans votre interface Angular. Assurez-vous d'adapter ces méthodes et le HTML selon les besoins spécifiques de votre application.
