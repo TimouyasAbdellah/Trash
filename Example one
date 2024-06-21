@@ -1,0 +1,229 @@
+Pour ajouter des boutons permettant d'ajouter une ligne en position 1 et d'ajouter un enfant, nous devons modifier le code HTML et TypeScript du composant. Voici comment procéder :
+
+### 1. HTML pour le Tree Table avec des boutons d'ajout
+
+Modifiez le fichier `tree-table.component.html` pour inclure des boutons pour ajouter une ligne et un enfant :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Position</th>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let i = index">
+      <tr>
+        <td>{{element.position}}</td>
+        <td>
+          <input type="checkbox" [(ngModel)]="element.checked">
+          {{element.name}}
+        </td>
+        <td>{{element.weight}}</td>
+        <td>{{element.symbol}}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" (click)="addChild(i)">Add Child</button>
+        </td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let j = index">
+          <tr>
+            <td></td>
+            <td>
+              <input type="checkbox" [(ngModel)]="child.checked">
+              {{child.name}}
+            </td>
+            <td>{{child.weight}}</td>
+            <td>{{child.symbol}}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" (click)="addChild(i, j)">Add Child</button>
+            </td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children">
+              <tr>
+                <td></td>
+                <td></td>
+                <td>
+                  <input type="checkbox" [(ngModel)]="grandChild.checked">
+                  {{grandChild.name}}
+                </td>
+                <td>{{grandChild.weight}}</td>
+                <td>{{grandChild.symbol}}</td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### 2. TypeScript pour le Tree Table
+
+Modifiez le fichier `tree-table.component.ts` pour inclure les méthodes d'ajout de lignes et d'enfants :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  position: number;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    position: 1, name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        position: 11, name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { position: 111, name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { position: 112, name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        position: 12, name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { position: 121, name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { position: 2, name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    position: 3, name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        position: 13, name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { position: 131, name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        position: 14, name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { position: 141, name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { position: 142, name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      position: this.dataSource.length + 1,
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+    this.updatePositions();
+  }
+
+  addChild(parentIndex: number, childIndex?: number) {
+    const newChild: PeriodicElement = {
+      position: Date.now(), // Simple unique identifier for the example
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (childIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else {
+      this.dataSource[parentIndex].children = this.dataSource[parentIndex].children || [];
+      this.dataSource[parentIndex].children!.push(newChild);
+    }
+
+    this.updatePositions();
+  }
+
+  updatePositions() {
+    let position = 1;
+    this.dataSource.forEach(element => {
+      element.position = position++;
+      if (element.children) {
+        element.children.forEach(child => {
+          child.position = position++;
+          if (child.children) {
+            child.children.forEach(grandChild => {
+              grandChild.position = position++;
+            });
+          }
+        });
+      }
+    });
+  }
+}
+```
+
+### Explication
+
+1. **Boutons d'ajout** :
+   - Un bouton pour ajouter une nouvelle ligne en position 1.
+   - Un bouton pour ajouter un enfant à la ligne ou à l'enfant existant.
+
+2. **Méthodes TypeScript** :
+   - `addRow()`: Ajoute une nouvelle ligne en position 1 et met à jour les positions.
+   - `addChild(parentIndex: number, childIndex?: number)`: Ajoute un nouvel enfant à la ligne parent ou à l'enfant spécifié et met à jour les positions.
+
+3. **Mise à jour des positions** :
+   - `updatePositions()`: Met à jour les positions des éléments pour s'assurer qu'ils sont correctement numérotés après chaque ajout.
+
+### 3. CSS pour le Tree Table (Optionnel)
+
+Ajoutez un fichier CSS pour styliser le tableau et l'arbre si nécessaire (`tree-table.component.css`):
+
+```css
+.table-bordered {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-bordered th, .table-bordered td {
+  border: 1px solid #dee2e6;
+  padding: 8px;
+}
+
+.table-bordered thead th {
+  background-color: #f8f9fa;
+}
+
+.table-bordered tbody tr td:nth-child(2) {
+  padding-left: 20px;
+}
+
+.table-bordered tbody tr td:nth-child(3) {
+  padding-left: 40px;
+}
+```
+
+### 4. Utiliser le composant dans votre application
+
+Ajoutez le `TreeTableComponent` dans votre template principal (par exemple, `app.component.html`):
+
+```html
+<app-tree-table></app-tree-table>
+```
+
+En suivant ces étapes, vous pouvez créer un tableau avec une structure en arbre comportant trois niveaux, des cases à cocher devant chaque nom, et des boutons pour ajouter des lignes et des enfants. Vous pouvez adapter ce code pour répondre à vos besoins spécifiques en matière de structure de données et de style.
