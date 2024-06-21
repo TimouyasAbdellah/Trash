@@ -1,0 +1,223 @@
+D'accord, nous allons ajouter les boutons pour ajouter un enfant directement en haut du tableau. Pour ce faire, nous devons permettre la sélection d'une ligne et ajouter des boutons en haut du tableau pour ajouter un enfant à la ligne sélectionnée.
+
+### 1. HTML pour le Tree Table avec les boutons en haut
+
+Modifiez le fichier `tree-table.component.html` pour inclure les boutons "Add Child" en haut du tableau :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="selectedRowIndex === null || selectedRowIndex === 0">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="selectedRowIndex === null || selectedRowIndex === dataSource.length - 1">Move Down</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="selectedRowIndex === null">Add Child</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Position</th>
+      <th>Select</th>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let i = index">
+      <tr>
+        <td>{{element.position}}</td>
+        <td>
+          <input type="radio" name="selectedRow" (change)="selectRow(i)" [checked]="selectedRowIndex === i">
+        </td>
+        <td>
+          <input type="checkbox" [(ngModel)]="element.checked">
+          {{element.name}}
+        </td>
+        <td>{{element.weight}}</td>
+        <td>{{element.symbol}}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" (click)="addChild(i)">Add Child</button>
+        </td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let j = index">
+          <tr>
+            <td></td>
+            <td></td>
+            <td>
+              <input type="checkbox" [(ngModel)]="child.checked">
+              {{child.name}}
+            </td>
+            <td>{{child.weight}}</td>
+            <td>{{child.symbol}}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" (click)="addChild(i, j)">Add Child</button>
+            </td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let k = index">
+              <tr>
+                <td></td>
+                <td></td>
+                <td>
+                  <input type="checkbox" [(ngModel)]="grandChild.checked">
+                  {{grandChild.name}}
+                </td>
+                <td>{{grandChild.weight}}</td>
+                <td>{{grandChild.symbol}}</td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### 2. TypeScript pour le Tree Table
+
+Modifiez le fichier `tree-table.component.ts` pour inclure la gestion de la ligne sélectionnée et les méthodes de déplacement et d'ajout d'enfants :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  position: number;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    position: 1, name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        position: 11, name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { position: 111, name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { position: 112, name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        position: 12, name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { position: 121, name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { position: 2, name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    position: 3, name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        position: 13, name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { position: 131, name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        position: 14, name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { position: 141, name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { position: 142, name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+  selectedRowIndex: number | null = null;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      position: this.dataSource.length + 1,
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+    this.updatePositions();
+  }
+
+  addChild(parentIndex?: number, childIndex?: number) {
+    const newChild: PeriodicElement = {
+      position: Date.now(), // Simple unique identifier for the example
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (parentIndex !== undefined && childIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else if (parentIndex !== undefined) {
+      this.dataSource[parentIndex].children = this.dataSource[parentIndex].children || [];
+      this.dataSource[parentIndex].children!.push(newChild);
+    } else if (this.selectedRowIndex !== null) {
+      this.dataSource[this.selectedRowIndex].children = this.dataSource[this.selectedRowIndex].children || [];
+      this.dataSource[this.selectedRowIndex].children!.push(newChild);
+    }
+
+    this.updatePositions();
+  }
+
+  selectRow(index: number) {
+    this.selectedRowIndex = index;
+  }
+
+  moveUp() {
+    if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+      this.updatePositions();
+    }
+  }
+
+  moveDown() {
+    if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+      this.updatePositions();
+    }
+  }
+
+  updatePositions() {
+    let position = 1;
+    this.dataSource.forEach(element => {
+      element.position = position++;
+      if (element.children) {
+        element.children.forEach(child => {
+          child.position = position++;
+          if (child.children) {
+            child.children.forEach(grandChild => {
+              grandChild.position = position++;
+            });
+          }
+        });
+      }
+    });
+  }
+}
+```
+
+### Explication
+
+1. **Boutons en haut du tableau** :
+   - Les boutons "Move Up", "Move Down" et "Add Child" sont ajoutés en haut du tableau, avec des conditions de désactivation si aucune ligne n'est sélectionnée ou si la ligne est déjà en haut ou en bas.
+
+2. **Méthode `selectRow(index: number)`** :
+   - Cette méthode est appelée lorsqu'une ligne est sélectionnée via un bouton radio. Elle met à jour l'index de la ligne sélectionnée (`selectedRowIndex`).
+
