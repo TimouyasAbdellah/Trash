@@ -1,0 +1,81 @@
+Je vais fournir l'intégralité du fichier `tree-table.component.html` mis à jour avec les boutons pour ajouter une ligne, ajouter un enfant et déplacer les lignes sélectionnées vers le haut et vers le bas, ainsi que la gestion des cases à cocher pour propager la sélection.
+
+### HTML pour le Tree Table (Mise à jour)
+
+Modifiez le fichier `tree-table.component.html` comme suit :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="selectedRowIndex === null && selectedChildIndex === null && selectedGrandChildIndex !== null">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="selectedRowIndex === null">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="selectedRowIndex === null">Move Down</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td>
+          <input type="checkbox" [checked]="element.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex)" />
+          {{ element.name }}
+        </td>
+        <td>{{ element.weight }}</td>
+        <td>{{ element.symbol }}</td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td>
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              <input type="checkbox" [checked]="child.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex)" />
+              {{ child.name }}
+            </td>
+            <td>{{ child.weight }}</td>
+            <td>{{ child.symbol }}</td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                  <input type="checkbox" [checked]="grandChild.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex, grandChildIndex)" />
+                  {{ grandChild.name }}
+                </td>
+                <td>{{ grandChild.weight }}</td>
+                <td>{{ grandChild.symbol }}</td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### Explications
+
+1. **Boutons en haut du tableau** :
+   - Les boutons `Add Row`, `Add Child`, `Move Up`, et `Move Down` sont placés en haut du tableau pour une meilleure accessibilité.
+   - Le bouton `Add Child` est désactivé si un arrière-petit-enfant est sélectionné pour empêcher l'ajout d'un enfant à un arrière-petit-enfant.
+
+2. **Checkboxes** :
+   - Les cases à cocher sont ajoutées devant le nom des éléments, enfants et petits-enfants.
+   - L'événement `click` sur les cases à cocher appelle la méthode `toggleSelection`, qui gère la propagation de la sélection.
+
+3. **Propagation de la sélection** :
+   - La méthode `toggleSelection` est déclenchée lorsque l'utilisateur clique sur une case à cocher. Elle appelle `propagateSelection` pour propager l'état de sélection aux enfants et petits-enfants.
+
+4. **Sélection des lignes** :
+   - Les lignes sont mises en surbrillance lorsque sélectionnées, avec une couleur différente pour les parents, les enfants et les petits-enfants.
+   - Les lignes sélectionnées peuvent être déplacées vers le haut ou vers le bas à l'aide des boutons `Move Up` et `Move Down`.
+
+Avec ces modifications, le tableau prend en charge la propagation des sélections via les cases à cocher et permet la gestion des lignes et des enfants, y compris les déplacements et les ajouts.
