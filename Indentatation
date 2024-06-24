@@ -1,0 +1,346 @@
+Pour ajouter des boutons permettant d'indenter des enfants ou des petits-enfants (c'est-à-dire pour promouvoir un enfant au rang de parent ou un petit-enfant au rang d'enfant), nous devons ajouter des méthodes qui réorganisent les éléments sélectionnés dans la structure des données. Voici les étapes détaillées :
+
+### HTML pour le Tree Table (Formulaire)
+
+Ajoutez les boutons "Indent" et "Outdent" pour les enfants et les petits-enfants.
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="!isAnyRowChecked()">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="!isAnyRowChecked()">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="!isAnyRowChecked()">Move Down</button>
+  <button class="btn btn-warning" (click)="indent()" [disabled]="!isAnyRowChecked()">Indent</button>
+  <button class="btn btn-warning" (click)="outdent()" [disabled]="!isAnyRowChecked()">Outdent</button>
+  <button class="btn btn-success" (click)="saveData()">Save</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td class="d-flex align-items-center">
+          <input type="checkbox" [checked]="element.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex)" class="me-2"/>
+          <input type="text" [(ngModel)]="element.name" class="form-control"/>
+        </td>
+        <td><input type="number" [(ngModel)]="element.weight" class="form-control" /></td>
+        <td><input type="text" [(ngModel)]="element.symbol" class="form-control" /></td>
+        <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, null, null)">Delete</button></td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td class="d-flex align-items-center">
+              <div class="ms-3 me-2">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              <input type="checkbox" [checked]="child.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex)" class="me-2"/>
+              <input type="text" [(ngModel)]="child.name" class="form-control"/>
+            </td>
+            <td><input type="number" [(ngModel)]="child.weight" class="form-control" /></td>
+            <td><input type="text" [(ngModel)]="child.symbol" class="form-control" /></td>
+            <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, null)">Delete</button></td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td class="d-flex align-items-center">
+                  <div class="ms-5 me-2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+                  <input type="checkbox" [checked]="grandChild.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex, grandChildIndex)" class="me-2"/>
+                  <input type="text" [(ngModel)]="grandChild.name" class="form-control"/>
+                </td>
+                <td><input type="number" [(ngModel)]="grandChild.weight" class="form-control" /></td>
+                <td><input type="text" [(ngModel)]="grandChild.symbol" class="form-control" /></td>
+                <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, grandChildIndex)">Delete</button></td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### TypeScript pour le Tree Table
+
+Ajoutez les méthodes `indent` et `outdent` pour gérer l'indentation et l'outdentation des éléments.
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+  selectedRowIndex: number | null = null;
+  selectedChildIndex: { parentIndex: number, childIndex: number } | null = null;
+  selectedGrandChildIndex: { parentIndex: number, childIndex: number, grandChildIndex: number } | null = null;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+  }
+
+  addChild() {
+    const newChild: PeriodicElement = {
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (this.selectedGrandChildIndex !== null) {
+      // Do nothing, adding a child to a grandchild is not allowed
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else if (this.selectedRowIndex !== null) {
+      this.dataSource[this.selectedRowIndex].children = this.dataSource[this.selectedRowIndex].children || [];
+      this.dataSource[this.selectedRowIndex].children!.push(newChild);
+    }
+  }
+
+  selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    this.selectedRowIndex = parentIndex;
+    this.selectedChildIndex = childIndex !== undefined ? { parentIndex, childIndex } : null;
+    this.selectedGrandChildIndex = (childIndex !== undefined && grandChildIndex !== undefined) ? { parent
+Voici la suite et la fin du code TypeScript avec les méthodes pour indenter et outdenter les enfants et les petits-enfants, ainsi que la méthode `selectRow` complétée :
+
+```typescript
+    grandChildIndex, childIndex, parentIndex } : null;
+  }
+
+  propagateSelection(element: PeriodicElement, checked: boolean) {
+    element.checked = checked;
+    if (element.children) {
+      element.children.forEach(child => {
+        child.checked = checked;
+        this.propagateSelection(child, checked);
+      });
+    }
+  }
+
+  toggleSelection(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      const grandChild = this.dataSource[parentIndex].children![childIndex!].children![grandChildIndex];
+      grandChild.checked = !grandChild.checked;
+      this.propagateSelection(grandChild, grandChild.checked);
+    } else if (childIndex !== undefined) {
+      const child = this.dataSource[parentIndex].children![childIndex];
+      child.checked = !child.checked;
+      this.propagateSelection(child, child.checked);
+    } else {
+      const parent = this.dataSource[parentIndex];
+      parent.checked = !parent.checked;
+      this.propagateSelection(parent, parent.checked);
+    }
+  }
+
+  moveUp() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex--;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex - 1];
+        this.dataSource[parentIndex].children![childIndex - 1] = temp;
+        this.selectedChildIndex.childIndex--;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+    }
+  }
+
+  moveDown() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex < this.dataSource[parentIndex].children![childIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex++;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex < this.dataSource[parentIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex + 1];
+        this.dataSource[parentIndex].children![childIndex + 1] = temp;
+        this.selectedChildIndex.childIndex++;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+    }
+  }
+
+  deleteRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex!].children!.splice(grandChildIndex, 1);
+    } else if (childIndex !== undefined) {
+      this.dataSource[parentIndex].children!.splice(childIndex, 1);
+    } else {
+      this.dataSource.splice(parentIndex, 1);
+    }
+
+    // Reset selected indexes after deletion
+    this.selectedRowIndex = null;
+    this.selectedChildIndex = null;
+    this.selectedGrandChildIndex = null;
+  }
+
+  indent() {
+    if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      const child = this.dataSource[parentIndex].children!.splice(childIndex, 1)[0];
+
+      // Promote the child to a sibling of its parent
+      this.dataSource.push(child);
+      this.selectedChildIndex = null;
+    } else if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      const grandChild = this.dataSource[parentIndex].children![childIndex].children!.splice(grandChildIndex, 1)[0];
+
+      // Promote the grandchild to a child of its grandparent
+      this.dataSource[parentIndex].children!.push(grandChild);
+      this.selectedGrandChildIndex = null;
+    }
+  }
+
+  outdent() {
+    if (this.selectedRowIndex !== null) {
+      // Cannot outdent a top-level element
+      return;
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      const child = this.dataSource[parentIndex].children!.splice(childIndex, 1)[0];
+
+      // Demote the child to a grandchild of its parent
+      if (parentIndex > 0) {
+        this.dataSource[parentIndex - 1].children = this.dataSource[parentIndex - 1].children || [];
+        this.dataSource[parentIndex - 1].children!.push(child);
+        this.selectedChildIndex = null;
+      }
+    } else if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      const grandChild = this.dataSource[parentIndex].children![childIndex].children!.splice(grandChildIndex, 1)[0];
+
+      // Demote the grandchild to a sibling of its parent
+      this.dataSource.push(grandChild);
+      this.selectedGrandChildIndex = null;
+    }
+  }
+
+  saveData() {
+    console.log('Saved data:', this.dataSource);
+    alert('Data saved successfully! Check console for details.');
+  }
+
+  isAnyRowChecked(): boolean {
+    for (const element of this.dataSource) {
+      if (element.checked) {
+        return true;
+      }
+      if (element.children) {
+        for (const child of element.children) {
+          if (child.checked) {
+            return true;
+          }
+          if (child.children) {
+            for (const grandChild of child.children) {
+              if (grandChild.checked) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+}
+```
+
+### Explications des modifications apportées :
+
+1. **Méthodes `indent` et `outdent`** :
+    - **`indent`** : Indente un élément sélectionné en le promouvant à un niveau supérieur dans la hiérarchie.
+    - **`outdent`** : Outdente un élément sélectionné en le dégradant à un niveau inférieur dans la hiérarchie.
+
+2. **`selectRow`** :
+    - Permet de sélectionner une ligne, un enfant ou un petit-enfant, et de gérer les index sélectionnés en conséquence.
+
+3. **HTML** :
+    - Ajout de boutons "Indent" et "Outdent" avec leurs événements de clic.
+
+Ces ajouts permettent une manipulation plus flexible de la hiérarchie des éléments, vous permettant de promouvoir ou de rétrograder des éléments dans la structure arborescente.
