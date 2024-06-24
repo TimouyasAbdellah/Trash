@@ -1,0 +1,174 @@
+Pour transformer cette table en formulaire, vous pouvez remplacer les cellules de données par des champs de formulaire (comme des champs de texte et des champs numériques). Vous pouvez également ajouter des boutons pour sauvegarder les modifications. Voici comment vous pouvez le faire :
+
+### HTML pour le Tree Table (Formulaire)
+
+Modifiez le fichier `tree-table.component.html` comme suit pour transformer la table en formulaire :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="selectedRowIndex === null && selectedChildIndex === null && selectedGrandChildIndex !== null">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="selectedRowIndex === null">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="selectedRowIndex === null">Move Down</button>
+  <button class="btn btn-success" (click)="saveData()">Save</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td>
+          <input type="checkbox" [checked]="element.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex)" />
+          <input type="text" [(ngModel)]="element.name" class="form-control" />
+        </td>
+        <td><input type="number" [(ngModel)]="element.weight" class="form-control" /></td>
+        <td><input type="text" [(ngModel)]="element.symbol" class="form-control" /></td>
+        <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, null, null)">Delete</button></td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td>
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              <input type="checkbox" [checked]="child.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex)" />
+              <input type="text" [(ngModel)]="child.name" class="form-control" />
+            </td>
+            <td><input type="number" [(ngModel)]="child.weight" class="form-control" /></td>
+            <td><input type="text" [(ngModel)]="child.symbol" class="form-control" /></td>
+            <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, null)">Delete</button></td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                  <input type="checkbox" [checked]="grandChild.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex, grandChildIndex)" />
+                  <input type="text" [(ngModel)]="grandChild.name" class="form-control" />
+                </td>
+                <td><input type="number" [(ngModel)]="grandChild.weight" class="form-control" /></td>
+                <td><input type="text" [(ngModel)]="grandChild.symbol" class="form-control" /></td>
+                <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, grandChildIndex)">Delete</button></td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### TypeScript pour le Tree Table (Mise à jour avec la méthode de sauvegarde)
+
+Modifiez le fichier `tree-table.component.ts` pour inclure la méthode `saveData` :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface PeriodicElement {
+  name: string;
+  weight: number;
+  symbol: string;
+  checked?: boolean;
+  children?: PeriodicElement[];
+}
+
+const ELEMENT_DATA: PeriodicElement[] = [
+  {
+    name: 'Hydrogen', weight: 1.0079, symbol: 'H', checked: false, children: [
+      {
+        name: 'Hydrogen-1', weight: 1.0078, symbol: 'H1', checked: false, children: [
+          { name: 'Hydrogen-1a', weight: 1.0077, symbol: 'H1a', checked: false },
+          { name: 'Hydrogen-1b', weight: 1.0076, symbol: 'H1b', checked: false }
+        ]
+      },
+      {
+        name: 'Hydrogen-2', weight: 2.0141, symbol: 'H2', checked: false, children: [
+          { name: 'Hydrogen-2a', weight: 2.0140, symbol: 'H2a', checked: false }
+        ]
+      }
+    ]
+  },
+  { name: 'Helium', weight: 4.0026, symbol: 'He', checked: false },
+  {
+    name: 'Lithium', weight: 6.941, symbol: 'Li', checked: false, children: [
+      {
+        name: 'Lithium-1', weight: 6.015, symbol: 'Li1', checked: false, children: [
+          { name: 'Lithium-1a', weight: 6.0149, symbol: 'Li1a', checked: false }
+        ]
+      },
+      {
+        name: 'Lithium-2', weight: 7.016, symbol: 'Li2', checked: false, children: [
+          { name: 'Lithium-2a', weight: 7.0159, symbol: 'Li2a', checked: false },
+          { name: 'Lithium-2b', weight: 7.0158, symbol: 'Li2b', checked: false }
+        ]
+      }
+    ]
+  }
+];
+
+@Component({
+  selector: 'app-tree-table',
+  templateUrl: './tree-table.component.html',
+  styleUrls: ['./tree-table.component.css']
+})
+export class TreeTableComponent {
+  dataSource = ELEMENT_DATA;
+  selectedRowIndex: number | null = null;
+  selectedChildIndex: { parentIndex: number, childIndex: number } | null = null;
+  selectedGrandChildIndex: { parentIndex: number, childIndex: number, grandChildIndex: number } | null = null;
+
+  addRow() {
+    const newRow: PeriodicElement = {
+      name: `New Element ${this.dataSource.length + 1}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+    this.dataSource.unshift(newRow);
+  }
+
+  addChild() {
+    const newChild: PeriodicElement = {
+      name: `New Child ${Date.now()}`,
+      weight: 0,
+      symbol: '',
+      checked: false
+    };
+
+    if (this.selectedGrandChildIndex !== null) {
+      // Do nothing, adding a child to a grandchild is not allowed
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      this.dataSource[parentIndex].children![childIndex].children = this.dataSource[parentIndex].children![childIndex].children || [];
+      this.dataSource[parentIndex].children![childIndex].children!.push(newChild);
+    } else if (this.selectedRowIndex !== null) {
+      this.dataSource[this.selectedRowIndex].children = this.dataSource[this.selectedRowIndex].children || [];
+      this.dataSource[this.selectedRowIndex].children!.push(newChild);
+    }
+  }
+
+  selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    this.selectedRowIndex = parentIndex;
+    this.selectedChildIndex = childIndex !== undefined ? { parentIndex, childIndex } : null;
+    this.selectedGrandChildIndex = (childIndex !== undefined && grandChildIndex !== undefined) ? { parentIndex, childIndex, grandChildIndex } : null;
+  }
+
+  propagateSelection(element: PeriodicElement, checked: boolean) {
+    element.checked = checked;
+    if (element.children) {
+      element.children.forEach(child => this.propagateSelection(child, checked));
+    }
+  }
+
+  toggleSelection(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      const grandChild = this.dataSource[parentIndex].children![childIndex!].children![grand
