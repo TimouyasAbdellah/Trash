@@ -1,0 +1,107 @@
+Voici la suite du code TypeScript, qui complète la méthode `toggleSelection` et ajoute la logique pour déplacer les lignes et enregistrer les données :
+
+```typescript
+      grandChildIndex];
+      grandChild.checked = !grandChild.checked;
+      this.propagateSelection(grandChild, grandChild.checked);
+    } else if (childIndex !== undefined) {
+      const child = this.dataSource[parentIndex].children![childIndex];
+      child.checked = !child.checked;
+      this.propagateSelection(child, child.checked);
+    } else {
+      const parent = this.dataSource[parentIndex];
+      parent.checked = !parent.checked;
+      this.propagateSelection(parent, parent.checked);
+    }
+  }
+
+  moveUp() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex - 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex--;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex > 0) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex - 1];
+        this.dataSource[parentIndex].children![childIndex - 1] = temp;
+        this.selectedChildIndex.childIndex--;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+      this.dataSource[this.selectedRowIndex - 1] = temp;
+      this.selectedRowIndex--;
+    }
+  }
+
+  moveDown() {
+    if (this.selectedGrandChildIndex !== null) {
+      const { parentIndex, childIndex, grandChildIndex } = this.selectedGrandChildIndex;
+      if (grandChildIndex < this.dataSource[parentIndex].children![childIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex] = this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1];
+        this.dataSource[parentIndex].children![childIndex].children![grandChildIndex + 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex++;
+      }
+    } else if (this.selectedChildIndex !== null) {
+      const { parentIndex, childIndex } = this.selectedChildIndex;
+      if (childIndex < this.dataSource[parentIndex].children!.length - 1) {
+        const temp = this.dataSource[parentIndex].children![childIndex];
+        this.dataSource[parentIndex].children![childIndex] = this.dataSource[parentIndex].children![childIndex + 1];
+        this.dataSource[parentIndex].children![childIndex + 1] = temp;
+        this.selectedChildIndex.childIndex++;
+      }
+    } else if (this.selectedRowIndex !== null && this.selectedRowIndex < this.dataSource.length - 1) {
+      const temp = this.dataSource[this.selectedRowIndex];
+      this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+      this.dataSource[this.selectedRowIndex + 1] = temp;
+      this.selectedRowIndex++;
+    }
+  }
+
+  deleteRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex!].children!.splice(grandChildIndex, 1);
+    } else if (childIndex !== undefined) {
+      this.dataSource[parentIndex].children!.splice(childIndex, 1);
+    } else {
+      this.dataSource.splice(parentIndex, 1);
+    }
+
+    // Reset selected indexes after deletion
+    this.selectedRowIndex = null;
+    this.selectedChildIndex = null;
+    this.selectedGrandChildIndex = null;
+  }
+
+  saveData() {
+    console.log('Saved data:', this.dataSource);
+    alert('Data saved successfully! Check console for details.');
+  }
+}
+```
+
+### Explications des modifications apportées au code :
+
+1. **Propagation de la sélection** :
+    - `propagateSelection(element: PeriodicElement, checked: boolean)` : Cette méthode permet de propager l'état de la sélection (coché/décoché) à tous les enfants d'un élément sélectionné.
+    - `toggleSelection` : Cette méthode gère la logique de sélection et appelle `propagateSelection` pour appliquer la sélection récursive.
+
+2. **Mise à jour de la méthode `moveUp` et `moveDown`** :
+    - La logique reste inchangée mais est déplacée pour correspondre au nouveau contexte de sélection.
+
+3. **Suppression de lignes** :
+    - `deleteRow` : Mise à jour pour supprimer une ligne spécifique ainsi que ses enfants et petits-enfants.
+
+4. **Enregistrement des données** :
+    - `saveData` : Cette méthode enregistre les données actuelles de la table et affiche un message de confirmation.
+
+### Vue d'ensemble
+
+Avec ces modifications, votre tableau se comporte comme un formulaire où chaque cellule peut être éditée. Les boutons permettent d'ajouter des lignes, des enfants, de déplacer les lignes, de supprimer des lignes, et de sauvegarder les données du tableau. Le comportement de sélection récursive permet de sélectionner une ligne et tous ses enfants en une seule action.
