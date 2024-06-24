@@ -1,0 +1,88 @@
+Pour aligner correctement les cases à cocher et les champs d'entrée dans les cellules de votre tableau, vous pouvez utiliser les classes utilitaires de Bootstrap pour ajuster le positionnement et l'alignement. Voici comment vous pouvez modifier le HTML pour s'assurer que les éléments sont correctement alignés :
+
+### HTML pour le Tree Table (Formulaire) avec Alignement Correct
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="selectedRowIndex === null && selectedChildIndex === null && selectedGrandChildIndex !== null">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="selectedRowIndex === null">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="selectedRowIndex === null">Move Down</button>
+  <button class="btn btn-success" (click)="saveData()">Save</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td class="d-flex align-items-center">
+          <input type="checkbox" [checked]="element.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex)" class="me-2"/>
+          <input type="text" [(ngModel)]="element.name" class="form-control"/>
+        </td>
+        <td><input type="number" [(ngModel)]="element.weight" class="form-control" /></td>
+        <td><input type="text" [(ngModel)]="element.symbol" class="form-control" /></td>
+        <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, null, null)">Delete</button></td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td class="d-flex align-items-center">
+              <div class="ms-3 me-2">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              <input type="checkbox" [checked]="child.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex)" class="me-2"/>
+              <input type="text" [(ngModel)]="child.name" class="form-control"/>
+            </td>
+            <td><input type="number" [(ngModel)]="child.weight" class="form-control" /></td>
+            <td><input type="text" [(ngModel)]="child.symbol" class="form-control" /></td>
+            <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, null)">Delete</button></td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td class="d-flex align-items-center">
+                  <div class="ms-5 me-2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+                  <input type="checkbox" [checked]="grandChild.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex, grandChildIndex)" class="me-2"/>
+                  <input type="text" [(ngModel)]="grandChild.name" class="form-control"/>
+                </td>
+                <td><input type="number" [(ngModel)]="grandChild.weight" class="form-control" /></td>
+                <td><input type="text" [(ngModel)]="grandChild.symbol" class="form-control" /></td>
+                <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, grandChildIndex)">Delete</button></td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### Explications des modifications apportées :
+
+1. **`class="d-flex align-items-center"`** :
+    - Appliqué aux cellules contenant la checkbox et l'input pour les aligner verticalement au centre de la cellule.
+
+2. **`class="me-2"`** :
+    - Ajouté aux checkboxes pour ajouter une marge à droite et les séparer visuellement des champs de texte.
+
+3. **`<div class="ms-3 me-2">&nbsp;&nbsp;&nbsp;&nbsp;</div>`** et **`<div class="ms-5 me-2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>`** :
+    - Utilisé pour ajouter des marges pour indenter les enfants et petits-enfants tout en maintenant l'alignement.
+
+### CSS (Optionnel)
+
+Si nécessaire, vous pouvez ajouter un peu de CSS pour peaufiner l'alignement et l'apparence :
+
+```css
+.table-tertiary {
+  background-color: #e9ecef;
+}
+```
+
+Cela devrait permettre à vos checkboxes et champs d'entrée d'être correctement alignés dans chaque cellule du tableau, tout en maintenant une apparence propre et organisée pour votre formulaire de table arborescente.
