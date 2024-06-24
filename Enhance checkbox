@@ -1,0 +1,90 @@
+Pour faire en sorte que la case à cocher ne sélectionne que la ligne correspondante sans propager la sélection aux enfants, vous pouvez simplifier la méthode `toggleSelection` pour qu'elle n'affecte que l'élément sur lequel elle est activée. Voici la version mise à jour :
+
+### TypeScript pour le Tree Table
+
+Modifiez la méthode `toggleSelection` pour qu'elle sélectionne seulement la ligne actuelle :
+
+```typescript
+toggleSelection(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+        const grandChild = this.dataSource[parentIndex].children![childIndex!].children![grandChildIndex];
+        grandChild.checked = !grandChild.checked;
+    } else if (childIndex !== undefined) {
+        const child = this.dataSource[parentIndex].children![childIndex];
+        child.checked = !child.checked;
+    } else {
+        const parent = this.dataSource[parentIndex];
+        parent.checked = !parent.checked;
+    }
+}
+```
+
+### HTML pour le Tree Table
+
+Aucune modification n'est nécessaire dans la partie HTML pour ce changement spécifique. Voici le code complet avec la nouvelle méthode `toggleSelection` intégrée :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="!isAnyRowChecked()">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="!isAnyRowChecked()">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="!isAnyRowChecked()">Move Down</button>
+  <button class="btn btn-warning" (click)="indent()" [disabled]="!isAnyRowChecked()">Indent</button>
+  <button class="btn btn-warning" (click)="outdent()" [disabled]="!isAnyRowChecked()">Outdent</button>
+  <button class="btn btn-success" (click)="saveData()">Save</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td class="d-flex align-items-center">
+          <input type="checkbox" [checked]="element.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex)" class="me-2"/>
+          <input type="text" [(ngModel)]="element.name" class="form-control"/>
+        </td>
+        <td><input type="number" [(ngModel)]="element.weight" class="form-control" /></td>
+        <td><input type="text" [(ngModel)]="element.symbol" class="form-control" /></td>
+        <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, null, null)">Delete</button></td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td class="d-flex align-items-center">
+              <div class="ms-3 me-2">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              <input type="checkbox" [checked]="child.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex)" class="me-2"/>
+              <input type="text" [(ngModel)]="child.name" class="form-control"/>
+            </td>
+            <td><input type="number" [(ngModel)]="child.weight" class="form-control" /></td>
+            <td><input type="text" [(ngModel)]="child.symbol" class="form-control" /></td>
+            <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, null)">Delete</button></td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td class="d-flex align-items-center">
+                  <div class="ms-5 me-2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+                  <input type="checkbox" [checked]="grandChild.checked" (click)="$event.stopPropagation(); toggleSelection(parentIndex, childIndex, grandChildIndex)" class="me-2"/>
+                  <input type="text" [(ngModel)]="grandChild.name" class="form-control"/>
+                </td>
+                <td><input type="number" [(ngModel)]="grandChild.weight" class="form-control" /></td>
+                <td><input type="text" [(ngModel)]="grandChild.symbol" class="form-control" /></td>
+                <td><button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, grandChildIndex)">Delete</button></td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+Avec cette modification, la case à cocher ne sélectionne que la ligne actuelle sans propager la sélection aux enfants ou petits-enfants.
