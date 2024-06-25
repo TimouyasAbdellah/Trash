@@ -1,0 +1,210 @@
+Pour répondre à ces nouvelles spécifications, nous devons :
+1. Permettre l'ajout de nouvelles lignes au même niveau que la ligne sélectionnée.
+2. Supprimer les cases à cocher.
+
+### TypeScript
+
+Modifions la logique pour ajouter des lignes au même niveau que la ligne sélectionnée. Nous allons également supprimer les références aux cases à cocher :
+
+```typescript
+import { Component } from '@angular/core';
+
+interface DataRow {
+  name: string;
+  weight?: number;
+  symbol: string;
+  children?: DataRow[];
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  dataSource: DataRow[] = [
+    {
+      name: 'Hydrogen',
+      weight: 1.0079,
+      symbol: 'H',
+      children: []
+    }
+  ];
+
+  selectedRowIndex: number | null = null;
+  selectedChildIndex: { parentIndex: number; childIndex: number } | null = null;
+  selectedGrandChildIndex: { parentIndex: number; childIndex: number; grandChildIndex: number } | null = null;
+
+  selectRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    this.selectedRowIndex = null;
+    this.selectedChildIndex = null;
+    this.selectedGrandChildIndex = null;
+
+    if (grandChildIndex !== undefined) {
+      this.selectedGrandChildIndex = { parentIndex, childIndex, grandChildIndex };
+    } else if (childIndex !== undefined) {
+      this.selectedChildIndex = { parentIndex, childIndex };
+    } else {
+      this.selectedRowIndex = parentIndex;
+    }
+  }
+
+  addRow() {
+    if (this.selectedRowIndex !== null && this.selectedChildIndex === null && this.selectedGrandChildIndex === null) {
+      // Add at the same level as parent
+      this.dataSource.splice(this.selectedRowIndex + 1, 0, {
+        name: 'New Element',
+        weight: 0,
+        symbol: '',
+        children: []
+      });
+    } else if (this.selectedChildIndex !== null && this.selectedGrandChildIndex === null) {
+      // Add at the same level as child
+      const parent = this.dataSource[this.selectedChildIndex.parentIndex];
+      parent.children!.splice(this.selectedChildIndex.childIndex + 1, 0, {
+        name: 'New Element',
+        weight: 0,
+        symbol: '',
+        children: []
+      });
+    } else if (this.selectedGrandChildIndex !== null) {
+      // Add at the same level as grandchild
+      const child = this.dataSource[this.selectedGrandChildIndex.parentIndex].children![this.selectedGrandChildIndex.childIndex];
+      child.children!.splice(this.selectedGrandChildIndex.grandChildIndex + 1, 0, {
+        name: 'New Element',
+        weight: 0,
+        symbol: '',
+        children: []
+      });
+    } else {
+      // Add as a new parent if nothing is selected
+      this.dataSource.push({
+        name: 'New Element',
+        weight: 0,
+        symbol: '',
+        children: []
+      });
+    }
+  }
+
+  addChild() {
+    if (this.selectedRowIndex !== null && this.selectedChildIndex === null && this.selectedGrandChildIndex === null) {
+      const parent = this.dataSource[this.selectedRowIndex];
+      if (!parent.children) {
+        parent.children = [];
+      }
+      parent.children.push({
+        name: 'New Child',
+        weight: parent.weight,
+        symbol: '',
+        children: []
+      });
+      delete parent.weight;
+    } else if (this.selectedChildIndex !== null && this.selectedGrandChildIndex === null) {
+      const child = this.dataSource[this.selectedChildIndex.parentIndex].children![this.selectedChildIndex.childIndex];
+      if (!child.children) {
+        child.children = [];
+      }
+      child.children.push({
+        name: 'New Grandchild',
+        weight: child.weight,
+        symbol: ''
+      });
+    }
+  }
+
+  deleteRow(parentIndex: number, childIndex?: number, grandChildIndex?: number) {
+    if (grandChildIndex !== undefined) {
+      this.dataSource[parentIndex].children![childIndex!].children!.splice(grandChildIndex, 1);
+    } else if (childIndex !== undefined) {
+      this.dataSource[parentIndex].children!.splice(childIndex, 1);
+    } else {
+      this.dataSource.splice(parentIndex, 1);
+    }
+  }
+
+  isAnyRowChecked(): boolean {
+    return this.selectedRowIndex !== null || this.selectedChildIndex !== null || this.selectedGrandChildIndex !== null;
+  }
+
+  moveUp() {
+    if (this.selectedRowIndex !== null && this.selectedChildIndex === null && this.selectedGrandChildIndex === null) {
+      if (this.selectedRowIndex > 0) {
+        const temp = this.dataSource[this.selectedRowIndex];
+        this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex - 1];
+        this.dataSource[this.selectedRowIndex - 1] = temp;
+        this.selectedRowIndex--;
+      }
+    } else if (this.selectedChildIndex !== null && this.selectedGrandChildIndex === null) {
+      const parent = this.dataSource[this.selectedChildIndex.parentIndex];
+      if (this.selectedChildIndex.childIndex > 0) {
+        const temp = parent.children![this.selectedChildIndex.childIndex];
+        parent.children![this.selectedChildIndex.childIndex] = parent.children![this.selectedChildIndex.childIndex - 1];
+        parent.children![this.selectedChildIndex.childIndex - 1] = temp;
+        this.selectedChildIndex.childIndex--;
+      }
+    } else if (this.selectedGrandChildIndex !== null) {
+      const child = this.dataSource[this.selectedGrandChildIndex.parentIndex].children![this.selectedGrandChildIndex.childIndex];
+      if (this.selectedGrandChildIndex.grandChildIndex > 0) {
+        const temp = child.children![this.selectedGrandChildIndex.grandChildIndex];
+        child.children![this.selectedGrandChildIndex.grandChildIndex] = child.children![this.selectedGrandChildIndex.grandChildIndex - 1];
+        child.children![this.selectedGrandChildIndex.grandChildIndex - 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex--;
+      }
+    }
+  }
+
+  moveDown() {
+    if (this.selectedRowIndex !== null && this.selectedChildIndex === null && this.selectedGrandChildIndex === null) {
+      if (this.selectedRowIndex < this.dataSource.length - 1) {
+        const temp = this.dataSource[this.selectedRowIndex];
+        this.dataSource[this.selectedRowIndex] = this.dataSource[this.selectedRowIndex + 1];
+        this.dataSource[this.selectedRowIndex + 1] = temp;
+        this.selectedRowIndex++;
+      }
+    } else if (this.selectedChildIndex !== null && this.selectedGrandChildIndex === null) {
+      const parent = this.dataSource[this.selectedChildIndex.parentIndex];
+      if (this.selectedChildIndex.childIndex < parent.children!.length - 1) {
+        const temp = parent.children![this.selectedChildIndex.childIndex];
+        parent.children![this.selectedChildIndex.childIndex] = parent.children![this.selectedChildIndex.childIndex + 1];
+        parent.children![this.selectedChildIndex.childIndex + 1] = temp;
+        this.selectedChildIndex.childIndex++;
+      }
+    } else if (this.selectedGrandChildIndex !== null) {
+      const child = this.dataSource[this.selectedGrandChildIndex.parentIndex].children![this.selectedGrandChildIndex.childIndex];
+      if (this.selectedGrandChildIndex.grandChildIndex < child.children!.length - 1) {
+        const temp = child.children![this.selectedGrandChildIndex.grandChildIndex];
+        child.children![this.selectedGrandChildIndex.grandChildIndex] = child.children![this.selectedGrandChildIndex.grandChildIndex + 1];
+        child.children![this.selectedGrandChildIndex.grandChildIndex + 1] = temp;
+        this.selectedGrandChildIndex.grandChildIndex++;
+      }
+    }
+  }
+
+  indent() {
+    if (this.selectedRowIndex !== null && this.selectedRowIndex > 0) {
+      const row = this.dataSource.splice(this.selectedRowIndex, 1)[0];
+      if (!this.dataSource[this.selectedRowIndex - 1].children) {
+        this.dataSource[this.selectedRowIndex - 1].children = [];
+      }
+      this.dataSource[this.selectedRowIndex - 1].children!.push(row);
+      this.selectedRowIndex = null;
+    } else if (this.selectedChildIndex !== null && this.selectedChildIndex.childIndex > 0) {
+      const parent = this.dataSource[this.selectedChildIndex.parentIndex];
+      const child = parent.children!.splice(this.selectedChildIndex.childIndex, 1)[0];
+      if (!parent.children![this.selectedChildIndex.childIndex - 1].children) {
+        parent.children![this.selectedChildIndex.childIndex - 1].children = [];
+      }
+      parent.children![this.selectedChildIndex.childIndex - 1].children!.push(child);
+      this.selectedChildIndex = null;
+    }
+  }
+
+  outdent() {
+    if (this.selectedChildIndex !== null) {
+      const parent = this.dataSource[this.selectedChildIndex.parentIndex];
+      const child = parent.children!.splice(this.selectedChildIndex.childIndex, 1)[0];
+      this.dataSource.splice(this.selectedChildIndex.parentIndex + 1, 0, child);
+      this.selectedChildIndex = null;
+    } else if (this.selectedGrandChildIndex !== null) {
+      const child = this.dataSource[this.selectedGrandChildIndex.parentIndex].children![this.selectedGrand
