@@ -1,0 +1,112 @@
+Voici la suite du code TypeScript avec les modifications nécessaires pour la fonctionnalité de l'indentation et de l'outdentation, en s'assurant que les boutons sont désactivés pour les niveaux inappropriés :
+
+```typescript
+  outdent() {
+    if (this.selectedGrandChildIndex !== null) {
+      const parent = this.dataSource[this.selectedGrandChildIndex.parentIndex];
+      const child = parent.children![this.selectedGrandChildIndex.childIndex];
+      const grandChild = child.children!.splice(this.selectedGrandChildIndex.grandChildIndex, 1)[0];
+      if (!parent.children) {
+        parent.children = [];
+      }
+      parent.children.splice(this.selectedGrandChildIndex.childIndex + 1, 0, grandChild);
+      this.selectedGrandChildIndex = null;
+    }
+  }
+
+  saveData() {
+    // Logic to save data
+  }
+}
+```
+
+### HTML
+
+Modifions également le template HTML pour les boutons de gestion des lignes et pour l'affichage conditionnel des colonnes :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="isAddChildDisabled()">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="!isAnyRowChecked()">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="!isAnyRowChecked()">Move Down</button>
+  <button class="btn btn-warning" (click)="indent()" [disabled]="!isAnyRowChecked()">Indent</button>
+  <button class="btn btn-warning" (click)="outdent()" [disabled]="!isAnyRowChecked()">Outdent</button>
+  <button class="btn btn-success" (click)="saveData()">Save</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let element of dataSource; let parentIndex = index">
+      <tr [class.table-primary]="selectedRowIndex === parentIndex" (click)="selectRow(parentIndex)">
+        <td class="d-flex align-items-center">
+          <input type="text" [(ngModel)]="element.name" class="form-control"/>
+        </td>
+        <td *ngIf="!element.children || element.children.length === 0">
+          <input type="number" [(ngModel)]="element.weight" class="form-control" />
+        </td>
+        <td>
+          <input type="text" [(ngModel)]="element.symbol" class="form-control" />
+        </td>
+        <td>
+          <button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, null, null)">Delete</button>
+        </td>
+      </tr>
+      <ng-container *ngIf="element.children">
+        <ng-container *ngFor="let child of element.children; let childIndex = index">
+          <tr [class.table-secondary]="selectedChildIndex?.parentIndex === parentIndex && selectedChildIndex?.childIndex === childIndex" (click)="selectRow(parentIndex, childIndex)">
+            <td class="d-flex align-items-center">
+              <div class="ms-3 me-2">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              <input type="text" [(ngModel)]="child.name" class="form-control"/>
+            </td>
+            <td>
+              <input type="number" [(ngModel)]="child.weight" class="form-control" />
+            </td>
+            <td>
+              <input type="text" [(ngModel)]="child.symbol" class="form-control" />
+            </td>
+            <td>
+              <button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, null)">Delete</button>
+            </td>
+          </tr>
+          <ng-container *ngIf="child.children">
+            <ng-container *ngFor="let grandChild of child.children; let grandChildIndex = index">
+              <tr [class.table-tertiary]="selectedGrandChildIndex?.parentIndex === parentIndex && selectedGrandChildIndex?.childIndex === childIndex && selectedGrandChildIndex?.grandChildIndex === grandChildIndex" (click)="selectRow(parentIndex, childIndex, grandChildIndex)">
+                <td class="d-flex align-items-center">
+                  <div class="ms-5 me-2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+                  <input type="text" [(ngModel)]="grandChild.name" class="form-control"/>
+                </td>
+                <td>
+                  <input type="number" [(ngModel)]="grandChild.weight" class="form-control" />
+                </td>
+                <td>
+                  <input type="text" [(ngModel)]="grandChild.symbol" class="form-control" />
+                </td>
+                <td>
+                  <button class="btn btn-danger btn-sm" (click)="deleteRow(parentIndex, childIndex, grandChildIndex)">Delete</button>
+                </td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### Explications supplémentaires
+
+1. **Sélection des lignes** : La sélection d'une ligne est gérée par la méthode `selectRow`, qui permet de sélectionner une ligne à n'importe quel niveau (parent, enfant, petit-enfant).
+2. **Ajout de lignes** : La méthode `addRow` ajoute une nouvelle ligne au même niveau que la ligne sélectionnée. Si aucune ligne n'est sélectionnée, elle ajoute une nouvelle ligne parent.
+3. **Indentation et Outdentation** : Les méthodes `indent` et `outdent` permettent d'indenter ou de désindenter une ligne sélectionnée. L'indentation déplace la ligne sélectionnée sous la ligne précédente, tandis que l'outdentation déplace une ligne enfant ou petit-enfant au niveau supérieur.
+
+Avec ces ajustements, vous devriez avoir un tableau qui permet d'ajouter des lignes au même niveau que la ligne sélectionnée, de supprimer des lignes, d'indenter et de désindenter des lignes, et de gérer la visibilité des colonnes pour les enfants et petits-enfants.
