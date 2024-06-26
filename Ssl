@@ -1,0 +1,98 @@
+Si vous pensez que le problème est lié à SSL, vous pouvez essayer de diagnostiquer et résoudre les problèmes SSL en ajoutant des configurations spécifiques pour gérer les connexions sécurisées. Voici quelques étapes pour vérifier et résoudre les problèmes SSL :
+
+1. **Vérifier le certificat SSL** :
+   - Assurez-vous que le certificat SSL du serveur est valide et que votre environnement Java (JDK) est capable de le vérifier.
+
+2. **Ignorer la vérification SSL (pour les tests uniquement)** :
+   - Pour des tests rapides, vous pouvez temporairement ignorer la vérification SSL, bien que cela ne soit pas recommandé pour un environnement de production.
+
+3. **Configurer correctement le certificat racine** :
+   - Ajoutez le certificat racine de l'autorité de certification (CA) à votre Java Keystore (cacerts).
+
+### Exemple de code pour ignorer la vérification SSL (pour les tests uniquement) :
+
+```java
+import javax.net.ssl.*;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.cert.X509Certificate;
+
+public class TeamsNotifier {
+
+    public static void main(String[] args) {
+        try {
+            // Ignorer la vérification SSL
+            disableSSLVerification();
+
+            String webhookUrl = "https://outlook.office.com/webhook/xxxxxx"; // Remplacez par votre URL de webhook
+            String message = "{ \"text\": \"Voici un message de notification envoyé depuis un programme Java!\" }";
+
+            URL url = new URL(webhookUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = message.getBytes("UTF-8");
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("Notification envoyée avec succès!");
+            } else {
+                System.out.println("Erreur lors de l'envoi de la notification. Code de réponse : " + responseCode);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void disableSSLVerification() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                    }
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                    }
+                }
+            };
+
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Points importants :
+- **Ignorer la vérification SSL n'est pas sécurisé** : Utilisez cette méthode uniquement pour des tests en environnement de développement. En production, assurez-vous que le certificat SSL est correctement configuré et vérifié.
+- **Ajouter le certificat au Keystore de Java** : Si vous obtenez des erreurs SSL en production, vous devriez ajouter le certificat racine de votre serveur au Keystore de Java. Voici comment faire :
+
+  ```bash
+  keytool -import -alias youralias -keystore $JAVA_HOME/lib/security/cacerts -file yourcertfile.crt
+  ```
+
+  Vous devrez fournir le mot de passe du Keystore, qui est généralement "changeit" par défaut.
+
+En suivant ces étapes, vous devriez pouvoir diagnostiquer et résoudre les problèmes liés à SSL dans votre programme Java.
