@@ -1,0 +1,127 @@
+Si l'erreur vient d'un proxy, il faudra configurer votre programme Java pour utiliser le proxy correct. Voici comment configurer votre connexion pour utiliser un proxy HTTP ou HTTPS :
+
+### Configuration du proxy dans Java
+
+1. **Configurer les propriétés système pour le proxy** :
+   Vous pouvez configurer les propriétés système pour indiquer à Java d'utiliser un proxy HTTP ou HTTPS.
+
+```java
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+public class TeamsNotifier {
+
+    public static void main(String[] args) {
+        // Configuration des propriétés du proxy
+        System.setProperty("http.proxyHost", "proxy.example.com");
+        System.setProperty("http.proxyPort", "8080");
+        System.setProperty("https.proxyHost", "proxy.example.com");
+        System.setProperty("https.proxyPort", "8080");
+
+        try {
+            String webhookUrl = "https://outlook.office.com/webhook/xxxxxx"; // Remplacez par votre URL de webhook
+            String message = "{ \"text\": \"Voici un message de notification envoyé depuis un programme Java!\" }";
+
+            URL url = new URL(webhookUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = message.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("Notification envoyée avec succès!");
+            } else {
+                System.out.println("Erreur lors de l'envoi de la notification. Code de réponse : " + responseCode);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Utilisation de l'authentification de proxy
+
+Si votre proxy nécessite une authentification, vous devrez également configurer l'authentification HTTP. Voici comment procéder :
+
+```java
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
+import java.net.URL;
+import java.util.Base64;
+
+public class TeamsNotifier {
+
+    public static void main(String[] args) {
+        // Configuration des propriétés du proxy
+        System.setProperty("http.proxyHost", "proxy.example.com");
+        System.setProperty("http.proxyPort", "8080");
+        System.setProperty("https.proxyHost", "proxy.example.com");
+        System.setProperty("https.proxyPort", "8080");
+
+        // Si le proxy nécessite une authentification
+        Authenticator.setDefault(new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication("proxyUser", "proxyPassword".toCharArray());
+            }
+        });
+
+        try {
+            String webhookUrl = "https://outlook.office.com/webhook/xxxxxx"; // Remplacez par votre URL de webhook
+            String message = "{ \"text\": \"Voici un message de notification envoyé depuis un programme Java!\" }";
+
+            URL url = new URL(webhookUrl);
+            Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy.example.com", 8080));
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            String encoded = Base64.getEncoder().encodeToString(("proxyUser:proxyPassword").getBytes(StandardCharsets.UTF_8));
+            conn.setRequestProperty("Proxy-Authorization", "Basic " + encoded);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = message.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("Notification envoyée avec succès!");
+            } else {
+                System.out.println("Erreur lors de l'envoi de la notification. Code de réponse : " + responseCode);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Explications supplémentaires :
+
+1. **Configurer les propriétés du proxy** : Vous devez définir les propriétés système pour `http.proxyHost`, `http.proxyPort`, `https.proxyHost`, et `https.proxyPort` avec les valeurs correctes de votre proxy.
+
+2. **Authentification de proxy** : Si votre proxy nécessite une authentification, vous devez configurer `Authenticator` et ajouter l'en-tête `Proxy-Authorization` à la requête HTTP.
+
+3. **Test et débogage** : Si vous rencontrez des problèmes, ajoutez des logs pour vérifier les paramètres de connexion et les réponses du serveur proxy.
+
+En suivant ces étapes, vous devriez être en mesure de configurer votre programme Java pour fonctionner avec un proxy et envoyer des notifications à un canal Microsoft Teams.
