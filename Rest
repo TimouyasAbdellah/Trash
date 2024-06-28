@@ -1,0 +1,114 @@
+Pour gérer une API qui renvoie un fichier Excel avec plusieurs onglets, vous pouvez utiliser `RestTemplate` pour faire l'appel API, puis traiter le fichier Excel en utilisant des bibliothèques comme Apache POI. Voici comment vous pouvez le faire :
+
+1. **Ajouter les dépendances nécessaires** :
+    - `spring-boot-starter-web` pour les appels REST
+    - `poi-ooxml` pour manipuler les fichiers Excel
+
+    Dans votre fichier `pom.xml` :
+
+    ```xml
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
+        </dependency>
+    </dependencies>
+    ```
+
+2. **Méthode pour appeler l'API et traiter le fichier Excel** :
+
+    ```java
+    import org.apache.poi.ss.usermodel.Workbook;
+    import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.HttpEntity;
+    import org.springframework.http.HttpHeaders;
+    import org.springframework.http.HttpMethod;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.stereotype.Service;
+    import org.springframework.web.client.RestTemplate;
+
+    import java.io.ByteArrayInputStream;
+    import java.io.IOException;
+
+    @Service
+    public class ApiService {
+
+        @Autowired
+        private RestTemplate restTemplate;
+
+        public Workbook callApiAndGetExcel(String url, String headerName, String headerValue) throws IOException {
+            // Créer les headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(headerName, headerValue);
+
+            // Créer une entité Http avec les headers
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            // Appeler l'API
+            ResponseEntity<byte[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, byte[].class);
+
+            // Vérifier que la réponse contient le fichier Excel
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                // Convertir le corps de la réponse en ByteArrayInputStream
+                ByteArrayInputStream bis = new ByteArrayInputStream(response.getBody());
+
+                // Charger le fichier Excel
+                return new XSSFWorkbook(bis);
+            }
+
+            throw new RuntimeException("Failed to download Excel file from API");
+        }
+    }
+    ```
+
+3. **Utilisation de la méthode dans un contrôleur** :
+
+    ```java
+    import org.apache.poi.ss.usermodel.Workbook;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.web.bind.annotation.GetMapping;
+    import org.springframework.web.bind.annotation.RequestParam;
+    import org.springframework.web.bind.annotation.RestController;
+
+    import javax.servlet.http.HttpServletResponse;
+    import java.io.IOException;
+
+    @RestController
+    public class ApiController {
+
+        @Autowired
+        private ApiService apiService;
+
+        @GetMapping("/download-excel")
+        public void downloadExcel(
+                @RequestParam String url,
+                @RequestParam String headerName,
+                @RequestParam String headerValue,
+                HttpServletResponse response) throws IOException {
+
+            Workbook workbook = apiService.callApiAndGetExcel(url, headerName, headerValue);
+
+            // Configurer la réponse HTTP pour le téléchargement du fichier
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=downloaded.xlsx");
+
+            // Écrire le contenu du workbook dans la réponse
+            workbook.write(response.getOutputStream());
+            workbook.close();
+        }
+    }
+    ```
+
+Avec cette configuration, vous pouvez appeler votre endpoint `/download-excel` en passant les paramètres `url`, `headerName`, et `headerValue` pour télécharger le fichier Excel de l'API et le renvoyer au client. Par exemple :
+
+```
+http://localhost:8080/download-excel?url=https://api.example.com/excel&headerName=Authorization&headerValue=Bearer%20token
+```
+
+Ce code gère l'appel à l'API pour obtenir le fichier Excel, le charge en mémoire à l'aide d'Apache POI, puis renvoie le fichier au client via la réponse HTTP.
