@@ -1,0 +1,141 @@
+Si vous souhaitez une solution purement Java, vous pouvez utiliser un serveur HTTP intégré à Java pour servir vos ressources locales. Voici un exemple complet :
+
+### Étape 1 : Télécharger les Ressources Locales
+
+Téléchargez les fichiers JavaScript nécessaires et placez-les dans un répertoire local.
+
+### Étape 2 : Configurer un Serveur HTTP en Java
+
+Utilisez le serveur HTTP intégré de Java (`com.sun.net.httpserver.HttpServer`) pour servir les fichiers localement. Ensuite, configurez Selenium pour accéder à ces ressources locales.
+
+### Exemple Complet
+
+#### Créer un Serveur HTTP en Java
+
+Voici un exemple de serveur HTTP simple en Java pour servir les fichiers locaux :
+
+```java
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.net.InetSocketAddress;
+
+public class SimpleHttpServer {
+    public static void main(String[] args) throws IOException {
+        // Créer un serveur HTTP sur le port 8000
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+
+        // Ajouter un contexte pour servir les fichiers
+        server.createContext("/", new FileHandler());
+
+        // Démarrer le serveur
+        server.setExecutor(null); // crée un exécuteur par défaut
+        server.start();
+        System.out.println("Server started on port 8000");
+    }
+
+    static class FileHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String filePath = "path/to/local" + exchange.getRequestURI().getPath();
+            byte[] response = Files.readAllBytes(Paths.get(filePath));
+            exchange.sendResponseHeaders(200, response.length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response);
+            os.close();
+        }
+    }
+}
+```
+
+#### Contenu HTML Modifié (index.html)
+
+Créez un fichier HTML en utilisant les ressources locales :
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Local Resource Example</title>
+    <script src="http://localhost:8000/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Test Page</h1>
+    <script>
+        $(document).ready(function() {
+            console.log("jQuery is loaded from local server");
+        });
+    </script>
+</body>
+</html>
+```
+
+#### Code Java avec Selenium
+
+Voici comment utiliser Selenium pour charger la page locale servie par votre serveur HTTP en Java :
+
+```java
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class SeleniumLocalResourceExample {
+    public static void main(String[] args) {
+        // Spécifiez le chemin vers le driver Chrome
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+
+        // Initialisez le WebDriver
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            // Chargez la page locale
+            driver.get("http://localhost:8000/index.html");
+
+            // Attendez quelques secondes pour voir le résultat
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            // Fermez le navigateur
+            driver.quit();
+        }
+    }
+}
+```
+
+### Instructions Complètes :
+
+1. **Télécharger les Ressources** : Téléchargez les fichiers JavaScript nécessaires et placez-les dans un répertoire local (par exemple, `path/to/local/jquery-3.6.0.min.js`).
+
+2. **Configurer le Serveur HTTP** : Utilisez le code Java pour créer un serveur HTTP intégré. Cela servira vos fichiers locaux à `http://localhost:8000`.
+
+3. **Créer le Fichier HTML** : Placez le fichier HTML dans le même répertoire que les ressources locales.
+
+4. **Utiliser Selenium** : Utilisez Selenium pour accéder à `http://localhost:8000/index.html` et vérifier que les ressources sont correctement chargées.
+
+### Exécution :
+
+1. **Démarrer le Serveur HTTP** :
+    - Exécutez `SimpleHttpServer.java` pour démarrer le serveur HTTP local.
+    
+    ```bash
+    javac SimpleHttpServer.java
+    java SimpleHttpServer
+    ```
+
+2. **Exécuter le Test Selenium** :
+    - Exécutez `SeleniumLocalResourceExample.java` pour charger la page locale avec Selenium.
+
+    ```bash
+    javac -cp .:selenium-server-standalone-x.xx.x.jar SeleniumLocalResourceExample.java
+    java -cp .:selenium-server-standalone-x.xx.x.jar SeleniumLocalResourceExample
+    ```
+
+Assurez-vous de remplacer `selenium-server-standalone-x.xx.x.jar` par le chemin correct vers le fichier JAR de Selenium.
+
+Cette solution vous permet de servir des fichiers JavaScript locaux en utilisant uniquement Java et Selenium.
