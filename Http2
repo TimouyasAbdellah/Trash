@@ -1,0 +1,79 @@
+Si vous n'avez pas accès à Internet pendant l'exécution de votre script Selenium, vous pouvez essayer de fournir les ressources JavaScript localement. Voici comment vous pouvez le faire :
+
+### 1. Télécharger les Ressources Localement
+Tout d'abord, vous devez télécharger les ressources JavaScript nécessaires sur votre machine locale.
+
+### 2. Servir les Ressources Localement
+Vous pouvez utiliser un serveur web local pour servir les fichiers téléchargés. Python est une bonne option pour cela, car il dispose d'un serveur HTTP intégré très simple à utiliser.
+
+### 3. Configurer Selenium pour Utiliser les Ressources Locales
+Ensuite, vous pouvez configurer Selenium pour utiliser ces ressources locales en modifiant les URLs dans la page HTML avant de les charger.
+
+#### Étape 1 : Télécharger les Ressources Localement
+
+Par exemple, si votre page HTML utilise jQuery, téléchargez jQuery et toutes les autres dépendances nécessaires :
+
+```bash
+wget https://code.jquery.com/jquery-3.6.0.min.js -O /path/to/local/jquery-3.6.0.min.js
+```
+
+#### Étape 2 : Servir les Ressources Localement
+
+Vous pouvez utiliser le serveur HTTP intégré de Python pour servir ces fichiers :
+
+```bash
+cd /path/to/local/
+python3 -m http.server 8000
+```
+
+Maintenant, vos fichiers locaux sont accessibles à l'adresse `http://localhost:8000`.
+
+#### Étape 3 : Modifier le Code HTML pour Utiliser les Ressources Locales
+
+Modifiez le code HTML pour pointer vers les ressources locales. Vous pouvez faire cela directement dans le fichier HTML ou de manière programmatique dans votre code Selenium.
+
+Voici un exemple de modification programmatique :
+
+```java
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.JavascriptExecutor;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.IOException;
+
+public class LocalResourceExample {
+    public static void main(String[] args) throws IOException {
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+
+        WebDriver driver = new ChromeDriver();
+
+        // Load local HTML file
+        String htmlContent = new String(Files.readAllBytes(Paths.get("/path/to/local/index.html")));
+        // Modify HTML content to use local JavaScript files
+        htmlContent = htmlContent.replace("https://code.jquery.com/jquery-3.6.0.min.js", "http://localhost:8000/jquery-3.6.0.min.js");
+
+        // Load the modified HTML into the browser
+        driver.get("data:text/html;charset=utf-8," + htmlContent);
+
+        // Execute any additional JavaScript if necessary
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("console.log('JavaScript loaded successfully');");
+
+        // Perform your Selenium tasks here
+
+        driver.quit();
+    }
+}
+```
+
+### Notes Importantes :
+
+1. **Le Serveur HTTP doit être en Cours d'Exécution** : Assurez-vous que le serveur HTTP (dans cet exemple, Python) est en cours d'exécution avant de lancer votre script Selenium.
+
+2. **Chemins Relatifs** : Si vous avez plusieurs fichiers JavaScript, CSS, ou autres ressources, assurez-vous que tous les chemins sont correctement modifiés pour pointer vers les versions locales.
+
+3. **Sécurité** : Utiliser des ressources locales est une solution temporaire pour le développement ou les tests hors ligne. Pour les environnements de production, assurez-vous que les ressources sont servies de manière sécurisée.
+
+En suivant ces étapes, vous pourrez exécuter votre script Selenium même sans connexion Internet, en utilisant des ressources JavaScript locales.
