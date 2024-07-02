@@ -1,0 +1,103 @@
+Si votre proxy utilise une authentification, vous devrez inclure les informations d'authentification dans les variables d'environnement `HTTP_PROXY` et `HTTPS_PROXY`. Voici comment vous pouvez le faire.
+
+### Configuration globale du proxy pour Docker avec authentification
+
+1. **Configurer les paramètres de proxy pour le daemon Docker** :
+   - Créez ou modifiez le fichier `/etc/systemd/system/docker.service.d/http-proxy.conf` pour configurer le proxy avec authentification :
+     ```ini
+     [Service]
+     Environment="HTTP_PROXY=http://username:password@proxy.example.com:8080/"
+     Environment="HTTPS_PROXY=https://username:password@proxy.example.com:8080/"
+     Environment="NO_PROXY=localhost,127.0.0.1,.example.com"
+     ```
+
+2. **Recharger et redémarrer le daemon Docker** :
+   ```sh
+   sudo systemctl daemon-reload
+   sudo systemctl restart docker
+   ```
+
+### Configuration du proxy dans un Dockerfile avec authentification
+
+Pour configurer le proxy dans un Dockerfile, vous devez également inclure les informations d'authentification dans les variables d'environnement `HTTP_PROXY` et `HTTPS_PROXY`.
+
+Voici un exemple de Dockerfile :
+
+```dockerfile
+# Utiliser une image de base avec Chrome et ChromeDriver
+FROM selenium/standalone-chrome
+
+# Configurer les variables d'environnement pour le proxy avec authentification
+ENV HTTP_PROXY=http://username:password@proxy.example.com:8080/
+ENV HTTPS_PROXY=https://username:password@proxy.example.com:8080/
+ENV NO_PROXY=localhost,127.0.0.1,.example.com
+
+# Installer Java
+RUN apt-get update && apt-get install -y openjdk-11-jdk && rm -rf /var/lib/apt/lists/*
+
+# Configurer les variables d'environnement pour Java
+ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH $JAVA_HOME/bin:$PATH
+
+# Copier votre application Java dans le conteneur
+COPY . /app
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Spécifier les serveurs DNS pour s'assurer de la résolution des noms
+RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf
+RUN echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+
+# Ajouter des hôtes au fichier /etc/hosts si nécessaire
+RUN echo "192.168.1.1 internal.example.com" >> /etc/hosts
+
+# Exécuter votre application Java
+CMD ["java", "-jar", "your-selenium-app.jar"]
+```
+
+### Configuration du proxy dans GitHub Actions avec authentification
+
+Pour GitHub Actions, vous pouvez configurer le proxy avec authentification en utilisant les secrets pour stocker les informations d'authentification de manière sécurisée.
+
+1. **Ajouter des secrets dans votre dépôt GitHub** :
+   - Allez dans la section "Settings" de votre dépôt GitHub.
+   - Ajoutez les secrets `PROXY_USERNAME` et `PROXY_PASSWORD`.
+
+2. **Modifier le workflow GitHub Actions** pour utiliser ces secrets :
+
+```yaml
+name: Selenium Test
+
+on: [push]
+
+jobs:
+  selenium-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set proxy environment variables
+      env:
+        PROXY_USERNAME: ${{ secrets.PROXY_USERNAME }}
+        PROXY_PASSWORD: ${{ secrets.PROXY_PASSWORD }}
+      run: |
+        echo "HTTP_PROXY=http://${PROXY_USERNAME}:${PROXY_PASSWORD}@proxy.example.com:8080/" >> $GITHUB_ENV
+        echo "HTTPS_PROXY=https://${PROXY_USERNAME}:${PROXY_PASSWORD}@proxy.example.com:8080/" >> $GITHUB_ENV
+        echo "NO_PROXY=localhost,127.0.0.1,.example.com" >> $GITHUB_ENV
+
+    - name: Build Docker image
+      run: docker build -t my-selenium-image .
+
+    - name: Run Selenium Tests
+      run: docker run --rm my-selenium-image
+```
+
+### Points à noter
+
+- **Sécurité des informations d'identification** : Évitez de coder en dur les informations d'authentification directement dans vos fichiers de configuration ou Dockerfile. Utilisez des variables d'environnement et des secrets pour stocker ces informations de manière sécurisée.
+- **Encodage des caractères spéciaux** : Si votre mot de passe contient des caractères spéciaux, il peut être nécessaire de les encoder en URL. Par exemple, `@` devient `%40`.
+
+En suivant ces instructions, vous devriez pouvoir configurer Docker et GitHub Actions pour utiliser un proxy avec authentification.
