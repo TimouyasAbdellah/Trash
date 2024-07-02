@@ -1,0 +1,130 @@
+D'accord, si vous devez garder l'URL de la page initiale et que vous souhaitez injecter ou remplacer les ressources JavaScript dynamiquement via Selenium sans les servir depuis un serveur local, vous pouvez manipuler le DOM de la page après son chargement pour injecter les scripts locaux.
+
+Voici comment vous pouvez le faire en Java :
+
+1. **Charger la Page Initiale** : Chargez la page à l'URL d'origine avec Selenium.
+2. **Injecter les Scripts Locaux** : Utilisez Selenium pour exécuter du JavaScript et remplacer les scripts distants par des scripts locaux.
+
+### Exemple Complet
+
+#### Étape 1 : Configurer le Serveur HTTP en Java
+
+Vous pouvez utiliser le même code de serveur HTTP en Java pour servir les fichiers locaux comme dans l'exemple précédent :
+
+```java
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.net.InetSocketAddress;
+
+public class SimpleHttpServer {
+    public static void main(String[] args) throws IOException {
+        // Créer un serveur HTTP sur le port 8000
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+
+        // Ajouter un contexte pour servir les fichiers
+        server.createContext("/", new FileHandler());
+
+        // Démarrer le serveur
+        server.setExecutor(null); // crée un exécuteur par défaut
+        server.start();
+        System.out.println("Server started on port 8000");
+    }
+
+    static class FileHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String filePath = "path/to/local" + exchange.getRequestURI().getPath();
+            byte[] response = Files.readAllBytes(Paths.get(filePath));
+            exchange.sendResponseHeaders(200, response.length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response);
+            os.close();
+        }
+    }
+}
+```
+
+#### Étape 2 : Utiliser Selenium pour Charger et Manipuler la Page
+
+```java
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.JavascriptExecutor;
+
+public class SeleniumInjectScriptsExample {
+    public static void main(String[] args) {
+        // Spécifiez le chemin vers le driver Chrome
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+
+        // Initialisez le WebDriver
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            // Chargez la page initiale
+            driver.get("https://example.com"); // Remplacez par l'URL réelle
+
+            // Injecter les scripts locaux
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            
+            // Remplacer un script distant par un script local
+            String script = "var script = document.createElement('script');" +
+                            "script.src = 'http://localhost:8000/jquery-3.6.0.min.js';" +
+                            "document.head.appendChild(script);";
+            js.executeScript(script);
+
+            // Attendez quelques secondes pour que le script soit chargé
+            Thread.sleep(5000);
+
+            // Vérifiez que le script a été chargé correctement
+            js.executeScript("console.log('Local script injected successfully');");
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            // Fermez le navigateur
+            driver.quit();
+        }
+    }
+}
+```
+
+### Explications
+
+1. **Démarrer le Serveur HTTP Local** :
+    - Utilisez `SimpleHttpServer` pour servir les fichiers locaux à `http://localhost:8000`.
+
+2. **Charger la Page Initiale** :
+    - Utilisez Selenium pour charger la page à l'URL d'origine.
+
+3. **Injecter les Scripts Locaux** :
+    - Utilisez `JavascriptExecutor` pour injecter dynamiquement les scripts locaux dans la page chargée.
+    - Créez et insérez dynamiquement une balise `<script>` avec l'URL de votre serveur local.
+
+4. **Vérifier l'Injection des Scripts** :
+    - Attendez quelques secondes pour que le script soit chargé et exécutez une vérification pour s'assurer que le script a été correctement injecté.
+
+### Instructions d'Exécution
+
+1. **Démarrez le Serveur HTTP Local** :
+
+```bash
+javac SimpleHttpServer.java
+java SimpleHttpServer
+```
+
+2. **Exécutez le Test Selenium** :
+
+```bash
+javac -cp .:selenium-server-standalone-x.xx.x.jar SeleniumInjectScriptsExample.java
+java -cp .:selenium-server-standalone-x.xx.x.jar SeleniumInjectScriptsExample
+```
+
+Assurez-vous de remplacer `selenium-server-standalone-x.xx.x.jar` par le chemin correct vers le fichier JAR de Selenium.
+
+En utilisant cette méthode, vous pouvez maintenir l'URL d'origine tout en injectant des ressources JavaScript locales, permettant à votre script Selenium de fonctionner sans dépendre de ressources externes.
