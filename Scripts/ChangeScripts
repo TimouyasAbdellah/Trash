@@ -1,0 +1,108 @@
+Changer l'attribut `src` d'un script avec Selenium et JavaScript ne déclenche pas automatiquement le chargement du nouveau script. Après avoir modifié l'attribut, vous devez recharger le script manuellement ou rafraîchir la page pour que le navigateur charge et exécute le nouveau script. Voici comment vous pouvez le faire de deux manières : soit en rechargant directement le script, soit en rafraîchissant la page.
+
+### Option 1 : Recharger le script directement
+
+Après avoir changé l'attribut `src`, vous pouvez créer un nouvel élément script et l'ajouter dynamiquement à la page. Voici comment :
+
+```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class ModifyAndReloadScript {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        WebDriver driver = new ChromeDriver();
+        
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Attendre que la page soit complètement chargée (optionnel)
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Localiser l'élément script à modifier
+        WebElement scriptElement = driver.findElement(By.xpath("//script[@src='original-script.js']"));
+
+        // Utiliser JavascriptExecutor pour modifier l'attribut src
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].setAttribute('src', 'nouveau-script.js');", scriptElement);
+
+        // Créer un nouvel élément script pour charger le nouveau script
+        js.executeScript(
+            "var newScript = document.createElement('script');" +
+            "newScript.src = 'nouveau-script.js';" +
+            "document.head.appendChild(newScript);"
+        );
+
+        // Optionnel : Vérifier la modification
+        String modifiedSrc = scriptElement.getAttribute("src");
+        System.out.println("Nouveau src du script : " + modifiedSrc);
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Option 2 : Rafraîchir la page
+
+Si le script doit être exécuté au chargement de la page, vous pouvez simplement rafraîchir la page après avoir modifié l'attribut `src` :
+
+```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class ModifyAndRefreshPage {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        WebDriver driver = new ChromeDriver();
+        
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Attendre que la page soit complètement chargée (optionnel)
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Localiser l'élément script à modifier
+        WebElement scriptElement = driver.findElement(By.xpath("//script[@src='original-script.js']"));
+
+        // Utiliser JavascriptExecutor pour modifier l'attribut src
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].setAttribute('src', 'nouveau-script.js');", scriptElement);
+
+        // Rafraîchir la page pour charger le nouveau script
+        driver.navigate().refresh();
+
+        // Optionnel : Attendre que la page soit rechargée
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Conclusion
+
+Vous pouvez choisir l'une des méthodes en fonction de vos besoins spécifiques. Recharger le script directement sans rafraîchir toute la page peut être plus efficace dans certains cas, mais le rafraîchissement de la page garantit que tous les scripts et contenus associés sont rechargés et exécutés correctement.
