@@ -1,0 +1,131 @@
+Bien sûr ! Voici quelques modèles HTML amusants pour notifier votre équipe lorsque des **scopes** sont manquants ou en attente (pending). Ces modèles incluent des images d'icônes en remplacement des emojis pour une meilleure compatibilité avec Outlook.
+
+### 1. **Missing Scopes Alert - Let’s Fill in the Gaps! 🌟**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missing Scopes Alert - Let’s Fill in the Gaps!</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { color: #f0ad4e; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2><img src="https://example.com/icons/star.png" alt="Star Icon" style="width:24px;height:24px;vertical-align:middle;"> Missing Scopes Alert - Let’s Fill in the Gaps!</h2>
+        <p>Hello Team,</p>
+        <p>It looks like we have some missing scopes in our project! 🌟 We need to review the current implementation and ensure all required scopes are included.</p>
+        <p>Check the scope list and make sure nothing is left behind. Let's get those scopes filled and our project back on track!</p>
+        <p>Thanks for your attention to this matter!</p>
+        <p class="footer">Best,<br>[Your Name]</p>
+    </div>
+</body>
+</html>
+```
+
+### 2. **Pending Scopes Alert - Time to Take Action! ⏳**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Scopes Alert - Time to Take Action!</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { color: #f0ad4e; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2><img src="https://example.com/icons/hourglass.png" alt="Hourglass Icon" style="width:24px;height:24px;vertical-align:middle;"> Pending Scopes Alert - Time to Take Action!</h2>
+        <p>Hello Team,</p>
+        <p>We have some scopes that are currently pending! ⏳ It’s time to review the tasks and ensure we get those scopes finalized.</p>
+        <p>Check the scope status and make sure all pending items are addressed. Let’s move forward and wrap things up!</p>
+        <p>Thanks for your diligence!</p>
+        <p class="footer">Best,<br>[Your Name]</p>
+    </div>
+</body>
+</html>
+```
+
+### 3. **Scope Issues Detected - Let's Fix Them! 🛠️**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scope Issues Detected - Let's Fix Them!</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { color: #d9534f; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2><img src="https://example.com/icons/tools.png" alt="Tools Icon" style="width:24px;height:24px;vertical-align:middle;"> Scope Issues Detected - Let's Fix Them!</h2>
+        <p>Hello Team,</p>
+        <p>We’ve detected some issues with the scopes in our project! 🛠️ It’s time to address these problems and get everything back in shape.</p>
+        <p>Review the scope details, identify the issues, and let’s work together to fix them!</p>
+        <p>Your efforts are appreciated!</p>
+        <p class="footer">Thanks,<br>[Your Name]</p>
+    </div>
+</body>
+</html>
+```
+
+### 4. **Scopes Check - Some Are Still Missing! 🕵️**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scopes Check - Some Are Still Missing!</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { color: #f0ad4e; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2><img src="https://example.com/icons/detective.png" alt="Detective Icon" style="width:24px;height:24px;vertical-align:middle;"> Scopes Check - Some Are Still Missing!</h2>
+        <p>Hello Team,</p>
+        <p>Our recent scope review has revealed that some scopes are still missing! 🕵️‍♂️ Let’s investigate and make sure we cover all the necessary scopes for our project.</p>
+        <p>Check the scope list and address any gaps. Let’s get everything in order!</p>
+        <p>Thanks for your attention to detail!</p>
+        <p class="footer">Best,<br>[Your Name]</p>
+    </div>
+</body>
+</html>
+```
+
+### **Ressources pour les Icônes**
+
+Si vous avez besoin d’icônes pour ces modèles, vous pouvez les trouver sur des sites d'icônes gratuits comme [Flaticon](https://www.flaticon.com/) ou [Icons8](https://icons8.com/). Voici quelques suggestions d'icônes à rechercher :
+
+- **Star Icon** : [Flaticon Star Icon](https://www.flaticon.com/free-icon/star_143260)
+- **Hourglass Icon** : [Flaticon Hourglass Icon](https://www.flaticon.com/free-icon/hourglass_736843)
+- **Bug Icon** : [Flaticon Bug Icon](https://www.flaticon.com/free-icon/bug_597643)
+- **Tools Icon** : [Flaticon Tools Icon](https://www.flaticon.com/free-icon/tools_1796418)
+- **Detective Icon** : [Flaticon Detective Icon](https://www.flaticon.com/free-icon/detective_1179518)
+
+Assurez-vous d’héberger les icônes en ligne et de mettre à jour les URLs des images dans les modèles en fonction de vos besoins.
+
+Ces modèles devraient vous aider à notifier votre équipe de manière engageante et efficace lorsqu'il y a des problèmes avec les scopes.
