@@ -1,0 +1,71 @@
+Si la source (`src`) du script contient "https" et cela pose des problèmes, il pourrait y avoir plusieurs raisons, telles que des restrictions de sécurité, des politiques de contenu strictes (CSP), ou des erreurs dans le chemin ou le domaine. Voici un exemple de code pour gérer ce scénario, en s'assurant que le chemin `src` est correctement formaté et en utilisant des pratiques appropriées pour injecter le script.
+
+### Exemple Fonctionnel Complet
+
+Voici un exemple fonctionnel qui prend en compte les scripts hébergés via HTTPS :
+
+```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+public class ModifyScriptSrcWithSelenium {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        ChromeOptions options = new ChromeOptions();
+        WebDriver driver = new ChromeDriver(options);
+
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Utiliser WebDriverWait pour attendre que l'élément soit présent
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement scriptElement = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//script[contains(@src, 'original-script.js')]")));
+
+        // Utiliser JavascriptExecutor pour modifier l'attribut src
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].setAttribute('src', 'https://nouveau-domaine.com/nouveau-script.js');", scriptElement);
+
+        // Créer un nouvel élément script pour charger le nouveau script
+        js.executeScript(
+            "var newScript = document.createElement('script');" +
+            "newScript.src = 'https://nouveau-domaine.com/nouveau-script.js';" +
+            "document.head.appendChild(newScript);"
+        );
+
+        // Optionnel : Vérifier la modification
+        String modifiedSrc = scriptElement.getAttribute("src");
+        System.out.println("Nouveau src du script : " + modifiedSrc);
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Explications
+
+1. **Configuration du WebDriver** : Assurez-vous que le chemin vers `chromedriver` est correct et que vous utilisez la version compatible avec votre navigateur.
+2. **Navigation vers la Page Web** : Naviguez vers la page cible.
+3. **Utilisation de `WebDriverWait`** : Utilisez `WebDriverWait` pour attendre la présence de l'élément script avec `src` contenant "original-script.js".
+4. **Modification de l'Attribut `src`** : Utilisez `JavascriptExecutor` pour modifier l'attribut `src` du script existant.
+5. **Chargement du Nouveau Script** : Créez un nouvel élément `<script>` avec la nouvelle `src` et ajoutez-le au document.
+6. **Vérification de la Modification** : Affichez le nouveau `src` pour vérifier la modification.
+
+### Notes Importantes
+
+- **Politique de Sécurité de Contenu (CSP)** : Certains sites peuvent avoir des politiques CSP strictes empêchant le chargement de scripts à partir de domaines non approuvés. Assurez-vous que le nouveau domaine est autorisé.
+- **Chemin Complet** : Utilisez toujours des chemins complets (https://...) pour éviter des erreurs de chemin relatif.
+- **Console du Navigateur** : Si vous rencontrez des problèmes, testez les commandes JavaScript dans la console du navigateur pour vous assurer qu'elles fonctionnent comme prévu.
+- **Attentes Robustes** : Utilisez `WebDriverWait` au lieu de `Thread.sleep` pour attendre que les éléments soient disponibles, ce qui rend le script plus fiable.
+
+Avec ces ajustements, vous devriez être en mesure de modifier l'attribut `src` de votre script hébergé via HTTPS avec Selenium en Java.
