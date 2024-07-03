@@ -1,0 +1,126 @@
+Lorsque vous modifiez l'attribut `src` d'un script et rafraîchissez la page, les modifications que vous avez faites via JavaScript ne persistent pas après le rafraîchissement, car elles ne modifient pas réellement le contenu source de la page mais seulement le DOM actuel en mémoire. Pour s'assurer que la page utilise le nouveau script après un rafraîchissement, vous pouvez essayer les méthodes suivantes :
+
+1. **Modification de l'URL du script avant le rafraîchissement** : Cette méthode garantit que la page chargera le nouveau script lors du rafraîchissement.
+
+2. **Utilisation de cookies ou du stockage local** : Vous pouvez stocker un indicateur pour rappeler au script de recharger la page avec le nouveau script.
+
+Voici comment vous pouvez gérer cela avec Selenium en Java :
+
+### Option 1 : Modification de l'URL du Script et Rafraîchissement
+
+Modifiez l'URL du script et ajoutez-le dynamiquement, puis rafraîchissez la page pour qu'elle charge le nouveau script.
+
+```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+public class ModifyAndReloadScript {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        ChromeOptions options = new ChromeOptions();
+        WebDriver driver = new ChromeDriver(options);
+
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Utiliser WebDriverWait pour attendre que l'élément soit présent
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement scriptElement = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//script[contains(@src, 'original-script.js')]")));
+
+        // Utiliser JavascriptExecutor pour modifier l'attribut src
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].setAttribute('src', 'https://nouveau-domaine.com/nouveau-script.js');", scriptElement);
+
+        // Rafraîchir la page pour charger le nouveau script
+        driver.navigate().refresh();
+
+        // Attendre que la page soit complètement rechargée (optionnel)
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//script[contains(@src, 'nouveau-script.js')]")));
+
+        // Vérifier que le nouveau script est chargé
+        WebElement newScriptElement = driver.findElement(By.xpath("//script[contains(@src, 'nouveau-script.js')]"));
+        String modifiedSrc = newScriptElement.getAttribute("src");
+        System.out.println("Nouveau src du script après rafraîchissement : " + modifiedSrc);
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Explications
+
+1. **Configuration et Navigation** : Configurez le driver Chrome et naviguez vers la page cible.
+2. **Attendre l'Élément Script** : Utilisez `WebDriverWait` pour attendre la présence de l'élément script avec le `src` original.
+3. **Modification de l'Attribut `src`** : Modifiez l'attribut `src` avec `JavascriptExecutor`.
+4. **Rafraîchir la Page** : Rafraîchissez la page pour que le navigateur charge le nouveau script.
+5. **Vérification** : Attendez la présence du nouveau script après le rafraîchissement et vérifiez son `src`.
+
+### Option 2 : Utiliser le Stockage Local pour Forcer le Nouveau Script
+
+Vous pouvez utiliser le stockage local pour enregistrer un indicateur qui sera vérifié lors du chargement de la page, et ainsi forcer la modification du script.
+
+```java
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+
+public class ModifyScriptSrcWithLocalStorage {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        ChromeOptions options = new ChromeOptions();
+        WebDriver driver = new ChromeDriver(options);
+
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Utiliser JavascriptExecutor pour stocker un indicateur dans le stockage local
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("localStorage.setItem('useNewScript', 'true');");
+
+        // Rafraîchir la page
+        driver.navigate().refresh();
+
+        // Utiliser JavascriptExecutor pour vérifier l'indicateur et modifier le script si nécessaire
+        js.executeScript(
+            "if (localStorage.getItem('useNewScript') === 'true') {" +
+            "  var scriptElement = document.querySelector('script[src*=\"original-script.js\"]');" +
+            "  if (scriptElement) {" +
+            "    scriptElement.setAttribute('src', 'https://nouveau-domaine.com/nouveau-script.js');" +
+            "  }" +
+            "  localStorage.removeItem('useNewScript');" +
+            "}"
+        );
+
+        // Optionnel : Vérifier la modification
+        WebElement newScriptElement = driver.findElement(By.xpath("//script[contains(@src, 'nouveau-script.js')]"));
+        String modifiedSrc = newScriptElement.getAttribute("src");
+        System.out.println("Nouveau src du script après rafraîchissement : " + modifiedSrc);
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Explications
+
+1. **Stockage de l'Indicateur** : Utilisez `localStorage` pour enregistrer un indicateur avant de rafraîchir la page.
+2. **Rafraîchissement de la Page** : Rafraîchissez la page pour qu'elle recharge en vérifiant l'indicateur dans le stockage local.
+3. **Modification du Script** : Vérifiez l'indicateur et modifiez le script si nécessaire.
+4. **Vérification** : Vérifiez que le script a bien été modifié après le rafraîchissement.
+
+Ces méthodes garantissent que le nouveau script est chargé après le rafraîchissement de la page.
