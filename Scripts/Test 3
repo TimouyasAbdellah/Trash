@@ -1,0 +1,82 @@
+Pour que la page utilise les nouvelles URLs après modification, il est crucial que les changements faits au DOM persistent. Cela n'est pas trivial parce que, par défaut, les modifications faites au DOM via Selenium ne sont pas persistées après le rafraîchissement de la page. Voici comment vous pouvez y parvenir en utilisant un script de rechargement conditionnel.
+
+### Approche : Utilisation du stockage local et injection d'un script
+
+1. **Utilisation du stockage local** : Stocker un indicateur dans le stockage local pour déterminer si les scripts doivent être modifiés.
+2. **Injection d'un script** : Utiliser un script injecté pour vérifier l'indicateur et mettre à jour les URLs des scripts si nécessaire.
+
+### Exemple Complet
+
+Voici un exemple de code en Java utilisant Selenium pour accomplir cela :
+
+```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+public class ModifyScriptSrcWithLocalStorage {
+    public static void main(String[] args) {
+        // Configuration du driver pour Chrome
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        ChromeOptions options = new ChromeOptions();
+        WebDriver driver = new ChromeDriver(options);
+
+        // Naviguer vers la page web cible
+        driver.get("http://example.com");
+
+        // Utiliser JavascriptExecutor pour stocker un indicateur dans le stockage local
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("localStorage.setItem('useNewScript', 'true');");
+
+        // Rafraîchir la page
+        driver.navigate().refresh();
+
+        // Attendre que la page soit complètement rechargée
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+
+        // Utiliser JavascriptExecutor pour injecter un script qui vérifie l'indicateur et modifie les scripts si nécessaire
+        js.executeScript(
+            "if (localStorage.getItem('useNewScript') === 'true') {" +
+            "  var scripts = document.getElementsByTagName('script');" +
+            "  for (var i = 0; i < scripts.length; i++) {" +
+            "    if (scripts[i].src.includes('original-script.js')) {" +
+            "      scripts[i].src = 'https://nouveau-domaine.com/nouveau-script.js';" +
+            "    }" +
+            "  }" +
+            "  localStorage.removeItem('useNewScript');" +
+            "  location.reload();" +  // Recharger la page pour utiliser les nouveaux scripts
+            "}"
+        );
+
+        // Attendre que la page soit complètement rechargée avec les nouveaux scripts
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//script[contains(@src, 'nouveau-script.js')]")));
+
+        // Optionnel : Vérifier la modification
+        WebElement newScriptElement = driver.findElement(By.xpath("//script[contains(@src, 'nouveau-script.js')]"));
+        String modifiedSrc = newScriptElement.getAttribute("src");
+        System.out.println("Nouveau src du script après deuxième rafraîchissement : " + modifiedSrc);
+
+        // Fermer le navigateur
+        driver.quit();
+    }
+}
+```
+
+### Explications
+
+1. **Stockage de l'Indicateur** : Utilisez `localStorage` pour enregistrer un indicateur avant de rafraîchir la page.
+2. **Rafraîchissement de la Page** : Rafraîchissez la page pour qu'elle vérifie l'indicateur dans le stockage local.
+3. **Injection de Script** : Injectez un script qui vérifie l'indicateur et modifie les URLs des scripts si nécessaire.
+4. **Rechargement de la Page** : Après avoir modifié les URLs des scripts, rechargez la page pour qu'elle utilise les nouveaux scripts.
+5. **Vérification** : Vérifiez que le script a bien été modifié après le deuxième rafraîchissement.
+
+Cette méthode garantit que les nouvelles URLs des scripts sont utilisées après le rafraîchissement de la page, en utilisant un indicateur de stockage local pour persister l'état entre les rechargements de la page.
