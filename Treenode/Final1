@@ -1,0 +1,241 @@
+Voici la suite et la fin de l'explication :
+
+### Fonctionnalités
+
+3. **Supprimer une ligne (`deleteRow`)** : Supprime la ligne sélectionnée ou un enfant.
+4. **Déplacer une ligne vers le haut (`moveUp`)** : Déplace la ligne sélectionnée vers le haut.
+5. **Déplacer une ligne vers le bas (`moveDown`)** : Déplace la ligne sélectionnée vers le bas.
+6. **Indenter une ligne (`indent`)** : Augmente la profondeur de la ligne sélectionnée en la transformant en enfant de la ligne précédente.
+7. **Désindenter une ligne (`outdent`)** : Diminue la profondeur de la ligne sélectionnée en la déplaçant au niveau supérieur.
+8. **Sauvegarder les données (`saveData`)** : Affiche les données de l'arbre dans la console.
+9. **Sélectionner une ligne (`selectRow`)** : Permet de sélectionner une ligne et de gérer les niveaux de sélection.
+
+### Finalisation
+
+Maintenant, votre application est capable de gérer un arbre à profondeur dynamique avec Angular et Bootstrap. Voici la version finale du fichier TypeScript, HTML et CSS :
+
+#### TypeScript
+
+```typescript
+import { Component } from '@angular/core';
+
+interface TreeNode {
+  name: string;
+  weight?: number | null;
+  symbol?: string;
+  children?: TreeNode[];
+  isSelected?: boolean;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  dataSource: TreeNode[] = [
+    { name: 'Hydrogen', weight: 1.0079, symbol: 'H', children: [] },
+    { name: 'Helium', weight: 4.0026, symbol: 'He', children: [] }
+  ];
+  selectedNode: TreeNode | null = null;
+
+  addRow() {
+    const newRow: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        parent.children!.splice(index + 1, 0, newRow);
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        this.dataSource.splice(index + 1, 0, newRow);
+      }
+    } else {
+      this.dataSource.push(newRow);
+    }
+    this.clearSelection();
+  }
+
+  addChild() {
+    if (this.selectedNode) {
+      this.selectedNode.children!.push({ name: '', weight: this.selectedNode.weight, symbol: '', children: [] });
+    }
+    this.clearSelection();
+  }
+
+  deleteRow() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        parent.children!.splice(index, 1);
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        this.dataSource.splice(index, 1);
+      }
+    }
+    this.clearSelection();
+  }
+
+  moveUp() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index > 0) {
+          const temp = parent.children![index];
+          parent.children![index] = parent.children![index - 1];
+          parent.children![index - 1] = temp;
+        }
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        if (index > 0) {
+          const temp = this.dataSource[index];
+          this.dataSource[index] = this.dataSource[index - 1];
+          this.dataSource[index - 1] = temp;
+        }
+      }
+    }
+  }
+
+  moveDown() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index < parent.children!.length - 1) {
+          const temp = parent.children![index];
+          parent.children![index] = parent.children![index + 1];
+          parent.children![index + 1] = temp;
+        }
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        if (index < this.dataSource.length - 1) {
+          const temp = this.dataSource[index];
+          this.dataSource[index] = this.dataSource[index + 1];
+          this.dataSource[index + 1] = temp;
+        }
+      }
+    }
+  }
+
+  indent() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index > 0) {
+          const newParent = parent.children![index - 1];
+          newParent.children!.push(this.selectedNode);
+          parent.children!.splice(index, 1);
+        }
+      }
+    }
+  }
+
+  outdent() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const grandParent = this.getParentNode(this.dataSource, parent);
+        if (grandParent) {
+          const index = parent.children!.indexOf(this.selectedNode);
+          grandParent.children!.push(parent.children!.splice(index, 1)[0]);
+        } else {
+          const index = parent.children!.indexOf(this.selectedNode);
+          this.dataSource.push(parent.children!.splice(index, 1)[0]);
+        }
+      }
+    }
+  }
+
+  saveData() {
+    // Logic to save data
+    console.log(this.dataSource);
+  }
+
+  isAnyRowChecked() {
+    return this.selectedNode !== null;
+  }
+
+  isAddChildDisabled() {
+    return !this.selectedNode || this.selectedNode.children === undefined;
+  }
+
+  selectRow(node: TreeNode) {
+    if (this.selectedNode) {
+      this.selectedNode.isSelected = false;
+    }
+    this.selectedNode = node;
+    node.isSelected = true;
+  }
+
+  clearSelection() {
+    if (this.selectedNode) {
+      this.selectedNode.isSelected = false;
+    }
+    this.selectedNode = null;
+  }
+
+  getParentNode(nodes: TreeNode[], child: TreeNode): TreeNode | null {
+    for (let node of nodes) {
+      if (node.children!.indexOf(child) !== -1) {
+        return node;
+      }
+      const parent = this.getParentNode(node.children!, child);
+      if (parent) {
+        return parent;
+      }
+    }
+    return null;
+  }
+}
+```
+
+#### HTML
+
+Le template HTML mis à jour pour gérer une profondeur dynamique illimitée :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="isAddChildDisabled()">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="!isAnyRowChecked()">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="!isAnyRowChecked()">Move Down</button>
+  <button class="btn btn-warning" (click)="indent()" [disabled]="!isAnyRowChecked()">Indent</button>
+  <button class="btn btn-warning" (click)="outdent()" [disabled]="!isAnyRowChecked()">Outdent</button>
+  <button class="btn btn-danger" (click)="deleteRow()" [disabled]="!isAnyRowChecked()">Delete Row</button>
+  <button class="btn btn-success" (click)="saveData()">Save Data</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th *ngIf="selectedNode?.children?.length > 0">Weight</th>
+      <th *ngIf="selectedNode?.children?.length > 0">Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let row of dataSource">
+      <ng-container *ngTemplateOutlet="recursiveRow; context: { $implicit: row, level: 0 }"></ng-container>
+    </ng-container>
+  </tbody>
+</table>
+
+<ng-template #recursiveRow let-node let-level="level">
+  <tr [class.highlight]="node.isSelected" (click)="selectRow(node)">
+    <td [style.paddingLeft.px]="level * 20">{{ node.name }}</td>
+    <td *ngIf="node.children && node.children.length > 0">
+      <input type="number" [(ngModel)]="node.weight">
+    </td>
+    <td *ngIf="node.children && node.children.length > 0">
+      <input type="text" [(ngModel)]="node.symbol">
+    </td>
+    <td>
+      <button class="btn btn-danger" (click)="deleteRow()">Delete</button>
+    </td>
+  </tr>
+  <ng-container *ngFor="let child of node.children">
+    <ng-container *ngTemplateOutlet="recursiveRow; context: { $implicit: child, level: level
