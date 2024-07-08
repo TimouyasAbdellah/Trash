@@ -1,0 +1,54 @@
+Pour afficher des statuts côte à côte avec des liens sur votre profil GitHub, vous pouvez organiser les éléments en utilisant une structure de tableau ou en utilisant des sections en HTML directement dans votre fichier `README.md`. Voici comment vous pouvez le faire en Markdown en utilisant une structure de tableau :
+
+### Exemple de structure en tableau
+
+```markdown
+# Mon Profil GitHub
+
+| Mes Liens                            | Statuts des Actions GitHub                           |
+|--------------------------------------|------------------------------------------------------|
+| [Mon site web](https://exemple.com)  | ![Statut](https://github.com/votre-nom-utilisateur/repo1/actions/workflows/ci.yml/badge.svg) |
+| [Mon blog](https://blog.exemple.com) | ![Statut](https://github.com/votre-nom-utilisateur/repo2/actions/workflows/ci.yml/badge.svg) |
+| [Mon LinkedIn](https://linkedin.com/in/votre-profil) | ![Statut](https://github.com/votre-nom-utilisateur/repo3/actions/workflows/ci.yml/badge.svg) |
+| [Mon Twitter](https://twitter.com/votre-compte) | ![Statut](https://github.com/votre-nom-utilisateur/repo4/actions/workflows/ci.yml/badge.svg) |
+```
+
+### Exemple avec HTML pour plus de flexibilité
+
+Si vous avez besoin de plus de contrôle sur la disposition, vous pouvez utiliser du HTML dans votre `README.md` :
+
+```markdown
+# Mon Profil GitHub
+
+<div style="display: flex; justify-content: space-between;">
+
+<div>
+  <h3>Mes Liens</h3>
+  <ul>
+    <li><a href="https://exemple.com">Mon site web</a></li>
+    <li><a href="https://blog.exemple.com">Mon blog</a></li>
+    <li><a href="https://linkedin.com/in/votre-profil">Mon LinkedIn</a></li>
+    <li><a href="https://twitter.com/votre-compte">Mon Twitter</a></li>
+  </ul>
+</div>
+
+<div>
+  <h3>Statuts des Actions GitHub</h3>
+  <ul>
+    <li>Repo 1: <img src="https://github.com/votre-nom-utilisateur/repo1/actions/workflows/ci.yml/badge.svg" alt="Statut"></li>
+    <li>Repo 2: <img src="https://github.com/votre-nom-utilisateur/repo2/actions/workflows/ci.yml/badge.svg" alt="Statut"></li>
+    <li>Repo 3: <img src="https://github.com/votre-nom-utilisateur/repo3/actions/workflows/ci.yml/badge.svg" alt="Statut"></li>
+    <li>Repo 4: <img src="https://github.com/votre-nom-utilisateur/repo4/actions/workflows/ci.yml/badge.svg" alt="Statut"></li>
+  </ul>
+</div>
+
+</div>
+```
+
+### Explication
+
+- **Markdown Table**: La structure de tableau en Markdown permet de placer des liens et des statuts côte à côte. Chaque lien est associé à son statut d'action GitHub dans une ligne de tableau.
+  
+- **HTML Flexbox**: L'utilisation de HTML avec `div` et `style="display: flex;"` permet de contrôler précisément la mise en page pour afficher les sections côte à côte. Chaque section (liens et statuts) est placée dans un `<div>` séparé, et `display: flex; justify-content: space-between;` assure que les sections sont alignées côte à côte.
+
+Vous pouvez choisir la méthode qui vous convient le mieux selon le niveau de personnalisation souhaité.
