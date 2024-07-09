@@ -1,0 +1,70 @@
+Pour implémenter une action GitHub qui prend des secrets si les inputs ne sont pas renseignés, vous pouvez utiliser la logique conditionnelle dans votre fichier de workflow. Voici comment procéder :
+
+1. Allez dans **Settings** > **Secrets and variables** > **Actions** de votre dépôt GitHub et ajoutez deux nouveaux secrets nommés `USER` et `PASSWORD`.
+
+2. Créez un fichier `.github/workflows/user-password-action.yml` dans votre dépôt avec ce contenu :
+
+```yaml
+name: User Password Action
+
+on: [push]
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set default values if inputs are not provided
+        id: set-defaults
+        run: |
+          if [ -z "${{ github.event.inputs.user }}" ]; then
+            echo "::set-output name=user::${{ secrets.USER }}"
+          else
+            echo "::set-output name=user::${{ github.event.inputs.user }}"
+          fi
+          if [ -z "${{ github.event.inputs.password }}" ]; then
+            echo "::set-output name=password::${{ secrets.PASSWORD }}"
+          else
+            echo "::set-output name=password::${{ github.event.inputs.password }}"
+          fi
+
+      - name: Use values in script
+        run: |
+          user="${{ steps.set-defaults.outputs.user }}"
+          password="${{ steps.set-defaults.outputs.password }}"
+          echo "User: $user"
+          echo "Password is set but hidden"
+          # Utilisation des valeurs pour se connecter à un service ou autre
+          curl -u "$user:$password" https://example.com/login
+```
+
+Avec ce fichier de workflow :
+
+1. La première étape vérifie si les inputs `user` et `password` sont fournis. Si non, elle utilise les secrets.
+2. Les valeurs sont ensuite utilisées dans une étape où le mot de passe reste caché.
+
+### Configuration des Inputs
+
+Ajoutez également un fichier `action.yml` à la racine de votre dépôt pour définir les inputs :
+
+```yaml
+name: 'User Password Action'
+description: 'An action that uses user and password inputs or falls back to secrets'
+inputs:
+  user:
+    description: 'Username for the action'
+    required: false
+  password:
+    description: 'Password for the action'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - run: echo "Inputs are configured"
+      shell: bash
+```
+
+Ce fichier définit les inputs comme optionnels, permettant à l'utilisateur de ne pas les fournir lors de l'exécution du workflow. Si les inputs ne sont pas fournis, les secrets configurés seront utilisés par défaut.
