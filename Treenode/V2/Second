@@ -1,0 +1,43 @@
+Voici la suite du code HTML, en continuant là où nous nous sommes arrêtés :
+
+```html
+    context: { $implicit: child, level: level + 1 }"></ng-container>
+  </ng-container>
+</ng-template>
+```
+
+### CSS
+
+Pour s'assurer que les styles CSS mettent en évidence la ligne sélectionnée correctement :
+
+```css
+.table tbody tr.highlight {
+  background-color: #d1e7dd;
+}
+
+.table td input[type="text"],
+.table td input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+```
+
+### Explication des modifications
+
+1. **Focus sur le champ "name" :** Nous utilisons `@ViewChildren('nameInput')` pour obtenir une liste de tous les éléments `nameInput`. Lors de l'ajout d'une nouvelle ligne, nous définissons le focus sur le premier champ `nameInput`.
+
+2. **Sélection automatique de la nouvelle ligne :** Lorsque nous ajoutons une nouvelle ligne, nous mettons à jour `selectedNode` avec la nouvelle ligne et la marquons comme sélectionnée (`isSelected = true`).
+
+3. **HTML template:** Les éléments `#nameInput` sont utilisés pour marquer les champs de texte pour le focus.
+
+### Instructions
+
+- Assurez-vous d'importer les modules nécessaires dans votre module Angular (`FormsModule` pour les directives ngModel et `CommonModule` pour les structures de contrôle comme ngFor).
+- Le code inclut une directive `#nameInput` sur les champs de texte pour capturer les éléments pour le focus.
+- Le CSS est utilisé pour aligner les champs de saisie et pour mettre en évidence la ligne sélectionnée.
+
+### Résultat
+
+Lorsque vous ajoutez une nouvelle ligne, le champ "name" de la nouvelle ligne recevra automatiquement le focus et sera sélectionné. Si aucune ligne n'est sélectionnée, une nouvelle ligne sera ajoutée à la fin du tableau avec le focus sur le champ "name". 
+
+Essayez d'intégrer ces modifications et testez si cela répond à vos besoins. Si vous avez d'autres questions ou des modifications supplémentaires, n'hésitez pas à me le faire savoir !
