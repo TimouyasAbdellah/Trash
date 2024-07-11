@@ -1,0 +1,253 @@
+Pour s'assurer que le focus est mis sur le champ "name" de la nouvelle ligne ajoutée et que la ligne est sélectionnée automatiquement, nous devons effectuer quelques ajustements dans notre composant TypeScript et notre template HTML.
+
+### TypeScript
+
+Nous devons ajouter une logique pour gérer le focus et la sélection automatique de la nouvelle ligne.
+
+```typescript
+import { Component, AfterViewInit, ViewChild, ElementRef, QueryList, ViewChildren } from '@angular/core';
+
+interface TreeNode {
+  name: string;
+  weight?: number | null;
+  symbol?: string;
+  children?: TreeNode[];
+  isSelected?: boolean;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements AfterViewInit {
+  @ViewChildren('nameInput') nameInputs!: QueryList<ElementRef>;
+
+  dataSource: TreeNode[] = [
+    { name: '', weight: null, symbol: '', children: [] }
+  ];
+  selectedNode: TreeNode | null = null;
+
+  ngAfterViewInit() {
+    this.setFocus();
+  }
+
+  setFocus() {
+    setTimeout(() => {
+      const firstNameInput = this.nameInputs.first;
+      if (firstNameInput) {
+        firstNameInput.nativeElement.focus();
+      }
+    }, 0);
+  }
+
+  addRow() {
+    const newRow: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        parent.children!.splice(index + 1, 0, newRow);
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        this.dataSource.splice(index + 1, 0, newRow);
+      }
+    } else {
+      this.dataSource.push(newRow);
+    }
+    this.clearSelection();
+    this.selectedNode = newRow;
+    this.selectedNode.isSelected = true;
+    this.setFocus();
+  }
+
+  addChild() {
+    if (this.selectedNode && this.selectedNode.children) {
+      const newChild = { name: '', weight: this.selectedNode.weight, symbol: '', children: [] };
+      this.selectedNode.children.push(newChild);
+      this.clearSelection();
+      this.selectedNode = newChild;
+      this.selectedNode.isSelected = true;
+      this.setFocus();
+    }
+  }
+
+  deleteRow() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        parent.children!.splice(index, 1);
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        this.dataSource.splice(index, 1);
+      }
+    }
+    this.clearSelection();
+  }
+
+  moveUp() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index > 0) {
+          const temp = parent.children![index];
+          parent.children![index] = parent.children![index - 1];
+          parent.children![index - 1] = temp;
+        }
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        if (index > 0) {
+          const temp = this.dataSource[index];
+          this.dataSource[index] = this.dataSource[index - 1];
+          this.dataSource[index - 1] = temp;
+        }
+      }
+    }
+  }
+
+  moveDown() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index < parent.children!.length - 1) {
+          const temp = parent.children![index];
+          parent.children![index] = parent.children![index + 1];
+          parent.children![index + 1] = temp;
+        }
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        if (index < this.dataSource.length - 1) {
+          const temp = this.dataSource[index];
+          this.dataSource[index] = this.dataSource[index + 1];
+          this.dataSource[index + 1] = temp;
+        }
+      }
+    }
+  }
+
+  indent() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const index = parent.children!.indexOf(this.selectedNode);
+        if (index > 0) {
+          const newParent = parent.children![index - 1];
+          newParent.children!.push(this.selectedNode);
+          parent.children!.splice(index, 1);
+        }
+      }
+    }
+  }
+
+  outdent() {
+    if (this.selectedNode) {
+      const parent = this.getParentNode(this.dataSource, this.selectedNode);
+      if (parent) {
+        const grandParent = this.getParentNode(this.dataSource, parent);
+        if (grandParent) {
+          const index = parent.children!.indexOf(this.selectedNode);
+          grandParent.children!.push(parent.children!.splice(index, 1)[0]);
+        } else {
+          const index = parent.children!.indexOf(this.selectedNode);
+          this.dataSource.push(parent.children!.splice(index, 1)[0]);
+        }
+      }
+    }
+  }
+
+  saveData() {
+    // Logic to save data
+    console.log(this.dataSource);
+  }
+
+  isAnyRowChecked() {
+    return this.selectedNode !== null;
+  }
+
+  isAddChildDisabled() {
+    return !this.selectedNode || this.selectedNode.children === undefined;
+  }
+
+  selectRow(node: TreeNode) {
+    if (this.selectedNode) {
+      this.selectedNode.isSelected = false;
+    }
+    this.selectedNode = node;
+    node.isSelected = true;
+  }
+
+  clearSelection() {
+    if (this.selectedNode) {
+      this.selectedNode.isSelected = false;
+    }
+    this.selectedNode = null;
+  }
+
+  getParentNode(nodes: TreeNode[], child: TreeNode): TreeNode | null {
+    for (let node of nodes) {
+      if (node.children!.indexOf(child) !== -1) {
+        return node;
+      }
+      const parent = this.getParentNode(node.children!, child);
+      if (parent) {
+        return parent;
+      }
+    }
+    return null;
+  }
+}
+```
+
+### HTML
+
+Le template HTML mis à jour pour gérer le focus sur le champ "name" de la nouvelle ligne ajoutée et la sélection automatique :
+
+```html
+<div class="mb-3">
+  <button class="btn btn-primary" (click)="addRow()">Add Row</button>
+  <button class="btn btn-secondary" (click)="addChild()" [disabled]="isAddChildDisabled()">Add Child</button>
+  <button class="btn btn-info" (click)="moveUp()" [disabled]="!isAnyRowChecked()">Move Up</button>
+  <button class="btn btn-info" (click)="moveDown()" [disabled]="!isAnyRowChecked()">Move Down</button>
+  <button class="btn btn-warning" (click)="indent()" [disabled]="!isAnyRowChecked()">Indent</button>
+  <button class="btn btn-warning" (click)="outdent()" [disabled]="!isAnyRowChecked()">Outdent</button>
+  <button class="btn btn-danger" (click)="deleteRow()" [disabled]="!isAnyRowChecked()">Delete Row</button>
+  <button class="btn btn-success" (click)="saveData()">Save Data</button>
+</div>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th *ngIf="selectedNode?.children?.length > 0">Weight</th>
+      <th *ngIf="selectedNode?.children?.length > 0">Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let row of dataSource">
+      <ng-container *ngTemplateOutlet="recursiveRow; context: { $implicit: row, level: 0 }"></ng-container>
+    </ng-container>
+  </tbody>
+</table>
+
+<ng-template #recursiveRow let-node let-level="level">
+  <tr [class.highlight]="node.isSelected" (click)="selectRow(node)">
+    <td [style.paddingLeft.px]="level * 20">
+      <input type="text" [(ngModel)]="node.name" *ngIf="level === 0" #nameInput>
+      <input type="text" [(ngModel)]="node.name" *ngIf="level > 0">
+    </td>
+    <td *ngIf="node.children && node.children.length > 0">
+      <input type="number" [(ngModel)]="node.weight">
+    </td>
+    <td *ngIf="node.children && node.children.length > 0">
+      <input type="text" [(ngModel)]="node.symbol">
+    </td>
+    <td>
+      <button class="btn btn-danger" (click)="deleteRow()">Delete</button>
+    </td>
+  </tr>
+  <ng-container *ngFor="let child of node.children">
+    <ng-container *ngTemplateOutlet="recursiveRow; context: { $implicit: child, level: level
