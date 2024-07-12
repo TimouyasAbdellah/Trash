@@ -1,0 +1,68 @@
+To create an input field in Angular that accepts decimal values between 0 and 1, you can use HTML5 attributes `min`, `max`, and `step` on your `<input>` element. Additionally, you can implement form validation to ensure that the values remain within the specified range.
+
+Here's how you can achieve this:
+
+### HTML (Template)
+Define your input field with the necessary attributes.
+
+```html
+<form [formGroup]="decimalForm" (ngSubmit)="onSubmit()">
+  <input type="number" formControlName="decimalInput" min="0" max="1" step="0.01" required>
+  <div *ngIf="decimalForm.controls['decimalInput'].invalid && decimalForm.controls['decimalInput'].touched">
+    <span *ngIf="decimalForm.controls['decimalInput'].errors?.required">This field is required.</span>
+    <span *ngIf="decimalForm.controls['decimalInput'].errors?.min">The value must be greater than or equal to 0.</span>
+    <span *ngIf="decimalForm.controls['decimalInput'].errors?.max">The value must be less than or equal to 1.</span>
+  </div>
+  <button type="submit">Submit</button>
+</form>
+```
+
+### TypeScript (Component)
+Ensure you import the necessary modules for form validation in your component.
+
+```typescript
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+@Component({
+  selector: 'app-decimal-input',
+  templateUrl: './decimal-input.component.html'
+})
+export class DecimalInputComponent {
+  decimalForm: FormGroup;
+  decimalValue: number;
+
+  constructor(private fb: FormBuilder) {
+    this.createForm();
+  }
+
+  createForm() {
+    this.decimalForm = this.fb.group({
+      decimalInput: [null, [Validators.required, Validators.min(0), Validators.max(1)]]
+    });
+  }
+
+  onSubmit() {
+    if (this.decimalForm.valid) {
+      this.decimalValue = this.decimalForm.value.decimalInput;
+      console.log("Submitted value:", this.decimalValue);
+    } else {
+      console.log("Form is invalid");
+    }
+  }
+}
+```
+
+### Explanations:
+- **HTML Template**:
+  - `type="number"` specifies that the field is a numeric input.
+  - `formControlName="decimalInput"` links the input field to a form control.
+  - `min="0"`, `max="1"` restrict the value range.
+  - `step="0.01"` allows decimal values with two decimal places.
+  - Conditional error messages inform the user if the input value is invalid.
+
+- **TypeScript**:
+  - Use `FormBuilder` to create a reactive form.
+  - Add validators using `Validators.required`, `Validators.min(0)`, and `Validators.max(1)` to ensure the value is between 0 and 1.
+
+With this approach, you ensure that your input field only accepts decimal values between 0 and 1 and provides appropriate error messages if the user enters invalid values.
