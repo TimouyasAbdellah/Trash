@@ -1,0 +1,90 @@
+Pour gérer des pop-ups qui apparaissent de manière aléatoire pendant vos tests Cypress, vous pouvez utiliser une combinaison de vérifications régulières et de gestion proactive dans vos tests. Voici une approche complète pour gérer ces pop-ups :
+
+### 1. Définir une Commande Personnalisée
+Créez une commande personnalisée pour détecter et fermer les pop-ups. Cela permettra de réutiliser facilement cette logique dans vos tests.
+
+```javascript
+// cypress/support/commands.js
+Cypress.Commands.add('closeRandomPopup', () => {
+  cy.get('body').then((body) => {
+    if (body.find('your-popup-selector').length > 0) {
+      cy.get('your-popup-close-button').click();
+    }
+  });
+});
+```
+
+### 2. Utiliser la Commande Personnalisée dans `beforeEach`
+Ajoutez cette commande dans le `beforeEach` pour vérifier et fermer les pop-ups avant chaque test.
+
+### 3. Utiliser la Commande Après les Actions Clés
+Utilisez la commande personnalisée après chaque action clé dans vos tests pour s'assurer qu'aucune pop-up n'interfère.
+
+### Exemple Complet
+
+Voici un exemple complet intégrant ces étapes :
+
+```javascript
+// cypress/integration/your_test_spec.js
+describe('Tests with random integrated pop-ups', () => {
+  beforeEach(() => {
+    cy.visit('https://yourwebsite.com');
+    cy.closeRandomPopup(); // Vérifie et ferme les pop-ups avant chaque test
+  });
+
+  it('should handle random pop-ups during the test', () => {
+    // Exécutez des actions qui pourraient déclencher des pop-ups
+    cy.get('your-selector').click();
+    
+    // Vérifiez et fermez les pop-ups après chaque action clé
+    cy.closeRandomPopup();
+
+    // Continuez avec vos étapes de test
+    cy.get('another-selector').type('some text');
+    cy.get('submit-button').click();
+    
+    // Vérifiez et fermez les pop-ups après une autre action clé
+    cy.closeRandomPopup();
+
+    // Vérifiez les résultats attendus
+    cy.get('result-selector').should('contain', 'expected result');
+  });
+
+  it('should handle another scenario with random pop-ups', () => {
+    // Exécutez des actions qui pourraient déclencher des pop-ups
+    cy.get('different-selector').click();
+    
+    // Vérifiez et fermez les pop-ups après chaque action clé
+    cy.closeRandomPopup();
+
+    // Continuez avec vos étapes de test
+    cy.get('another-different-selector').type('another text');
+    cy.get('another-submit-button').click();
+
+    // Vérifiez et fermez les pop-ups après une autre action clé
+    cy.closeRandomPopup();
+
+    // Vérifiez les résultats attendus
+    cy.get('another-result-selector').should('contain', 'another expected result');
+  });
+});
+```
+
+### Explications
+
+1. **Commande Personnalisée** :
+    - La commande `closeRandomPopup` vérifie si une pop-up est présente et la ferme si nécessaire. Cela permet de centraliser la logique de détection et de fermeture des pop-ups.
+
+2. **Utilisation dans `beforeEach`** :
+    - En utilisant `cy.closeRandomPopup()` dans `beforeEach`, vous vous assurez que chaque test commence sans aucune pop-up perturbatrice.
+
+3. **Vérification Après les Actions Clés** :
+    - Après chaque action clé susceptible de déclencher un pop-up, utilisez `cy.closeRandomPopup()` pour vérifier et fermer les pop-ups qui pourraient apparaître.
+
+### Conseils Supplémentaires
+
+- **Réutilisation et Maintenance** : L'utilisation de commandes personnalisées améliore la réutilisabilité et la maintenabilité de votre code de test.
+- **Délai d'Attente Approprié** : Si nécessaire, ajustez les délais d'attente (`cy.wait()`) pour donner le temps aux pop-ups d'apparaître.
+- **Gestion des Variantes de Pop-ups** : Si vous avez différentes sortes de pop-ups, vous pouvez étendre la logique de la commande personnalisée pour gérer plusieurs sélecteurs et boutons de fermeture.
+
+En suivant cette approche, vous pouvez gérer efficacement les pop-ups aléatoires dans vos tests Cypress et assurer que vos tests s'exécutent sans interruption.
