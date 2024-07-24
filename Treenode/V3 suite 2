@@ -1,0 +1,136 @@
+### Suite des tests unitaires
+
+```ts
+    expect(spectator.component.dataSource.length).toBe(2);
+    expect(spectator.component.dataSource[1]).toBe(row2);
+    expect(row1.children.length).toBe(0);
+  });
+
+  it('should outdent a row when it is a child of a child', () => {
+    const row1 = { name: 'Row 1', weight: null, symbol: '', children: [] };
+    const row2 = { name: 'Row 2', weight: null, symbol: '', children: [] };
+    const row3 = { name: 'Row 3', weight: null, symbol: '', children: [] };
+    row1.children.push(row2);
+    row2.children.push(row3);
+    spectator.component.dataSource.push(row1);
+    spectator.component.selectRow(row3);
+
+    const outdentButton = spectator.query('button.btn-warning:nth-of-type(2)');
+    spectator.click(outdentButton);
+
+    expect(row1.children.length).toBe(1);
+    expect(row1.children[0]).toBe(row2);
+    expect(row2.children.length).toBe(0);
+    expect(spectator.component.dataSource.length).toBe(2);
+    expect(spectator.component.dataSource[1]).toBe(row3);
+  });
+
+  it('should not indent the first row', () => {
+    const indentButton = spectator.query('button.btn-warning:nth-of-type(1)');
+    spectator.click(indentButton);
+
+    expect(spectator.component.dataSource.length).toBe(1);
+    expect(spectator.component.dataSource[0].name).toBe('');
+  });
+
+  it('should not outdent the top-level rows', () => {
+    const outdentButton = spectator.query('button.btn-warning:nth-of-type(2)');
+    spectator.click(outdentButton);
+
+    expect(spectator.component.dataSource.length).toBe(1);
+    expect(spectator.component.dataSource[0].name).toBe('');
+  });
+
+  it('should deselect all rows when a row is deleted', () => {
+    spectator.component.dataSource.push({ name: 'Test', weight: null, symbol: '', children: [] });
+    const row = spectator.component.dataSource[1];
+    spectator.component.selectRow(row);
+
+    const deleteButton = spectator.query('button.btn-danger');
+    spectator.click(deleteButton);
+
+    expect(spectator.component.selectedNode).toBeNull();
+    spectator.component.dataSource.forEach(node => {
+      expect(node.isSelected).toBeFalsy();
+    });
+  });
+
+  it('should not allow adding a child to a grandchild', () => {
+    spectator.component.dataSource.push({
+      name: 'Parent',
+      weight: null,
+      symbol: '',
+      children: [
+        {
+          name: 'Child',
+          weight: null,
+          symbol: '',
+          children: [{ name: 'Grandchild', weight: null, symbol: '', children: [] }],
+        },
+      ],
+    });
+    const grandchild = spectator.component.dataSource[1].children[0].children[0];
+    spectator.component.selectRow(grandchild);
+
+    const addChildButton = spectator.query('button.btn-secondary');
+    spectator.click(addChildButton);
+
+    expect(grandchild.children.length).toBe(0);
+  });
+
+  it('should correctly identify grandchild nodes', () => {
+    const parent = { name: 'Parent', weight: null, symbol: '', children: [] };
+    const child = { name: 'Child', weight: null, symbol: '', children: [] };
+    const grandchild = { name: 'Grandchild', weight: null, symbol: '', children: [] };
+    parent.children.push(child);
+    child.children.push(grandchild);
+    spectator.component.dataSource.push(parent);
+
+    expect(spectator.component.isGrandChild(grandchild)).toBe(true);
+    expect(spectator.component.isGrandChild(child)).toBe(false);
+  });
+});
+```
+
+Ces tests couvrent les fonctionnalités principales de la composante, y compris l'ajout, la suppression, le déplacement, l'indentation et la désindentation des lignes, ainsi que la sélection des lignes et la vérification de l'état de la composante après chaque opération.
+
+### Points importants :
+
+1. **Indentation correcte** : Le bouton "Indent" n'indente pas la première ligne, et il ajoute correctement une ligne en tant qu'enfant de la ligne précédente.
+2. **Désindentation correcte** : Le bouton "Outdent" désindente correctement une ligne et la place au même niveau que son parent.
+3. **Gestion des sélections** : Les lignes sont correctement sélectionnées et désélectionnées.
+4. **Manipulation des enfants** : Les enfants et petits-enfants sont correctement gérés, et les lignes enfants ne peuvent pas avoir elles-mêmes des enfants.
+
+### Configuration initiale
+
+Pour exécuter ces tests, assurez-vous d'avoir installé Jest et Spectator. Voici une configuration de base pour Jest :
+
+**Installation des dépendances :**
+
+```bash
+npm install --save-dev @ngneat/spectator jest jest-preset-angular @types/jest
+```
+
+**Configuration de Jest (jest.config.js) :**
+
+```js
+module.exports = {
+  preset: 'jest-preset-angular',
+  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+};
+```
+
+**Configuration Jest Angular (setup-jest.ts) :**
+
+```ts
+import 'jest-preset-angular/setup-jest';
+```
+
+Avec cette configuration, vous devriez être en mesure d'exécuter les tests avec la commande suivante :
+
+```bash
+npx jest
+```
+
+Cela permettra de vérifier que toutes les fonctionnalités de votre composant fonctionnent comme prévu et que les opérations sur les lignes de la table sont correctement implémentées.
