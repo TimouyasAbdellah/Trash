@@ -1,0 +1,241 @@
+D'accord, je vais revoir le code pour l'indentation et m'assurer que tout fonctionne correctement, y compris les tests unitaires.
+
+Voici une version mise à jour du code, avec une meilleure gestion de l'indentation des lignes et des tests unitaires adaptés :
+
+### Code du composant Angular
+
+```typescript
+import { Component } from '@angular/core';
+
+interface TreeNode {
+  name: string;
+  weight: number | null;
+  symbol: string;
+  children: TreeNode[];
+  isSelected?: boolean;
+}
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css'],
+})
+export class AppComponent {
+  dataSource: TreeNode[] = [{ name: '', weight: null, symbol: '', children: [], isSelected: true }];
+  selectedNode: TreeNode | null = this.dataSource[0];
+
+  addRow() {
+    const newRow: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    if (!this.selectedNode) {
+      this.dataSource.push(newRow);
+    } else {
+      const parentNode = this.findParent(this.dataSource, this.selectedNode);
+      if (parentNode) {
+        const index = parentNode.children.indexOf(this.selectedNode);
+        parentNode.children.splice(index + 1, 0, newRow);
+      } else {
+        const index = this.dataSource.indexOf(this.selectedNode);
+        this.dataSource.splice(index + 1, 0, newRow);
+      }
+    }
+    this.selectRow(newRow);
+  }
+
+  addChild() {
+    if (!this.selectedNode || this.isGrandChild(this.selectedNode)) return;
+    const newChild: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    this.selectedNode.children.push(newChild);
+    this.selectRow(newChild);
+  }
+
+  deleteRow() {
+    if (!this.selectedNode) return;
+    this.deleteNode(this.dataSource, this.selectedNode);
+    this.selectedNode = null;
+  }
+
+  moveUp() {
+    if (!this.selectedNode) return;
+    const parentNode = this.findParent(this.dataSource, this.selectedNode);
+    if (parentNode) {
+      const index = parentNode.children.indexOf(this.selectedNode);
+      if (index > 0) {
+        [parentNode.children[index], parentNode.children[index - 1]] = [
+          parentNode.children[index - 1],
+          parentNode.children[index],
+        ];
+      }
+    } else {
+      const index = this.dataSource.indexOf(this.selectedNode);
+      if (index > 0) {
+        [this.dataSource[index], this.dataSource[index - 1]] = [this.dataSource[index - 1], this.dataSource[index]];
+      }
+    }
+  }
+
+  moveDown() {
+    if (!this.selectedNode) return;
+    const parentNode = this.findParent(this.dataSource, this.selectedNode);
+    if (parentNode) {
+      const index = parentNode.children.indexOf(this.selectedNode);
+      if (index < parentNode.children.length - 1) {
+        [parentNode.children[index], parentNode.children[index + 1]] = [
+          parentNode.children[index + 1],
+          parentNode.children[index],
+        ];
+      }
+    } else {
+      const index = this.dataSource.indexOf(this.selectedNode);
+      if (index < this.dataSource.length - 1) {
+        [this.dataSource[index], this.dataSource[index + 1]] = [this.dataSource[index + 1], this.dataSource[index]];
+      }
+    }
+  }
+
+  indent() {
+    if (!this.selectedNode) return;
+    const parentNode = this.findParent(this.dataSource, this.selectedNode);
+    if (parentNode) {
+      const index = parentNode.children.indexOf(this.selectedNode);
+      if (index > 0) {
+        parentNode.children[index - 1].children.push(this.selectedNode);
+        parentNode.children.splice(index, 1);
+      }
+    } else {
+      const index = this.dataSource.indexOf(this.selectedNode);
+      if (index > 0) {
+        this.dataSource[index - 1].children.push(this.selectedNode);
+        this.dataSource.splice(index, 1);
+      }
+    }
+  }
+
+  outdent() {
+    if (!this.selectedNode) return;
+    const parentNode = this.findParent(this.dataSource, this.selectedNode);
+    if (parentNode) {
+      const grandParentNode = this.findParent(this.dataSource, parentNode);
+      const index = parentNode.children.indexOf(this.selectedNode);
+      parentNode.children.splice(index, 1);
+      if (grandParentNode) {
+        const parentIndex = grandParentNode.children.indexOf(parentNode);
+        grandParentNode.children.splice(parentIndex + 1, 0, this.selectedNode);
+      } else {
+        const parentIndex = this.dataSource.indexOf(parentNode);
+        this.dataSource.splice(parentIndex + 1, 0, this.selectedNode);
+      }
+    }
+  }
+
+  selectRow(row: TreeNode) {
+    this.deselectAll(this.dataSource);
+    row.isSelected = true;
+    this.selectedNode = row;
+  }
+
+  findParent(tree: TreeNode[], node: TreeNode): TreeNode | null {
+    for (const item of tree) {
+      if (item.children.includes(node)) {
+        return item;
+      }
+      const found = this.findParent(item.children, node);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  deleteNode(tree: TreeNode[], node: TreeNode) {
+    const index = tree.indexOf(node);
+    if (index > -1) {
+      tree.splice(index, 1);
+    } else {
+      for (const item of tree) {
+        this.deleteNode(item.children, node);
+      }
+    }
+  }
+
+  isGrandChild(node: TreeNode): boolean {
+    const parentNode = this.findParent(this.dataSource, node);
+    return parentNode ? this.findParent(this.dataSource, parentNode) !== null : false;
+  }
+
+  deselectAll(tree: TreeNode[]) {
+    for (const node of tree) {
+      node.isSelected = false;
+      this.deselectAll(node.children);
+    }
+  }
+}
+```
+
+### Template HTML du composant
+
+```html
+<div class="container mt-4">
+  <div class="mb-3">
+    <button class="btn btn-primary" (click)="addRow()">Add Line</button>
+    <button class="btn btn-secondary" [disabled]="!selectedNode || isGrandChild(selectedNode)" (click)="addChild()">Add Child Line</button>
+    <button class="btn btn-danger" [disabled]="!selectedNode" (click)="deleteRow()">Delete Line</button>
+    <button class="btn btn-info" [disabled]="!selectedNode" (click)="moveUp()">Move Up</button>
+    <button class="btn btn-info" [disabled]="!selectedNode" (click)="moveDown()">Move Down</button>
+    <button class="btn btn-warning" [disabled]="!selectedNode" (click)="indent()">Indent</button>
+    <button class="btn btn-warning" [disabled]="!selectedNode" (click)="outdent()">Outdent</button>
+  </div>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Weight</th>
+        <th>Symbol</th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let row of dataSource">
+        <ng-container *ngTemplateOutlet="recursiveTableRow; context: { $implicit: row, level: 0 }"></ng-container>
+      </ng-container>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #recursiveTableRow let-node let-level="level">
+  <tr [class.highlight]="node.isSelected" (click)="selectRow(node)" [ngStyle]="{'padding-left': (level * 20) + 'px'}">
+    <td><input type="text" class="form-control" [(ngModel)]="node.name" /></td>
+    <td *ngIf="!node.children.length"><input type="number" class="form-control" [(ngModel)]="node.weight" /></td>
+    <td><input type="text" class="form-control" [(ngModel)]="node.symbol" /></td>
+  </tr>
+  <ng-container *ngFor="let child of node.children">
+    <ng-container *ngTemplateOutlet="recursiveTableRow; context: { $implicit: child, level: level + 1 }"></ng-container>
+  </ng-container>
+</ng-template>
+```
+
+### Tests unitaires avec Jest et Spectator
+
+```ts
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
+import { AppComponent } from './app.component';
+import { FormsModule } from '@angular/forms';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
+describe('AppComponent', () => {
+  let spectator: Spectator<AppComponent>;
+  const createComponent = createComponentFactory({
+    component: AppComponent,
+    imports: [FormsModule],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  });
+
+  beforeEach(() => {
+    spectator = createComponent();
+  });
+
+  it('should create the component', () => {
+    expect(spectator.component).toBeTruthy();
+  });
+
+  it('should initialize with one empty row and focus on the name input', () => {
+    const nameInput = spectator.query<HTMLInputElement>('input[type="text"]');
+    expect(spectator.component.dataSource.length).toBe(1);
+    expect(spectator.component.dataSource[0
