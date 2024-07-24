@@ -1,0 +1,217 @@
+### Suite des tests unitaires avec Jest et Spectator
+
+```ts
+    .name).toBe('');
+    expect(document.activeElement).toBe(nameInput);
+  });
+
+  it('should focus on the name input when a new row is added', () => {
+    const addButton = spectator.query('button.btn-primary');
+    spectator.click(addButton);
+
+    const nameInput = spectator.query<HTMLInputElement>('input[type="text"]');
+    expect(document.activeElement).toBe(nameInput);
+  });
+
+  it('should add a new row at the end when no row is selected', () => {
+    spectator.component.selectedNode = null;
+    const initialLength = spectator.component.dataSource.length;
+    const addButton = spectator.query('button.btn-primary');
+    spectator.click(addButton);
+
+    expect(spectator.component.dataSource.length).toBe(initialLength + 1);
+    expect(spectator.component.dataSource[initialLength].name).toBe('');
+  });
+
+  it('should select the new row added', () => {
+    const addButton = spectator.query('button.btn-primary');
+    spectator.click(addButton);
+
+    const newRow = spectator.component.dataSource[spectator.component.dataSource.length - 1];
+    expect(newRow.isSelected).toBe(true);
+    expect(spectator.component.selectedNode).toBe(newRow);
+  });
+
+  it('should add a child to the selected row', () => {
+    spectator.component.dataSource[0].name = 'Parent';
+    spectator.component.selectRow(spectator.component.dataSource[0]);
+
+    const addChildButton = spectator.query('button.btn-secondary');
+    spectator.click(addChildButton);
+
+    expect(spectator.component.dataSource[0].children.length).toBe(1);
+    expect(spectator.component.dataSource[0].children[0].name).toBe('');
+    expect(spectator.component.dataSource[0].children[0].weight).toBeNull();
+  });
+
+  it('should delete a selected row', () => {
+    spectator.component.dataSource.push({ name: 'Test', weight: null, symbol: '', children: [] });
+    const row = spectator.component.dataSource[1];
+    spectator.component.selectRow(row);
+
+    const deleteButton = spectator.query('button.btn-danger');
+    spectator.click(deleteButton);
+
+    expect(spectator.component.dataSource.length).toBe(1);
+    expect(spectator.component.dataSource.includes(row)).toBe(false);
+  });
+
+  it('should move a row up', () => {
+    spectator.component.dataSource.push({ name: 'Test1', weight: null, symbol: '', children: [] });
+    spectator.component.dataSource.push({ name: 'Test2', weight: null, symbol: '', children: [] });
+    spectator.component.selectRow(spectator.component.dataSource[2]);
+
+    const moveUpButton = spectator.query('button.btn-info:nth-of-type(1)');
+    spectator.click(moveUpButton);
+
+    expect(spectator.component.dataSource[1].name).toBe('Test2');
+    expect(spectator.component.dataSource[2].name).toBe('Test1');
+  });
+
+  it('should move a row down', () => {
+    spectator.component.dataSource.push({ name: 'Test1', weight: null, symbol: '', children: [] });
+    spectator.component.dataSource.push({ name: 'Test2', weight: null, symbol: '', children: [] });
+    spectator.component.selectRow(spectator.component.dataSource[1]);
+
+    const moveDownButton = spectator.query('button.btn-info:nth-of-type(2)');
+    spectator.click(moveDownButton);
+
+    expect(spectator.component.dataSource[1].name).toBe('Test2');
+    expect(spectator.component.dataSource[2].name).toBe('Test1');
+  });
+
+  it('should indent a selected row', () => {
+    spectator.component.dataSource.push({ name: 'Test1', weight: null, symbol: '', children: [] });
+    spectator.component.dataSource.push({ name: 'Test2', weight: null, symbol: '', children: [] });
+    spectator.component.selectRow(spectator.component.dataSource[2]);
+
+    const indentButton = spectator.query('button.btn-warning:nth-of-type(1)');
+    spectator.click(indentButton);
+
+    expect(spectator.component.dataSource[1].children.length).toBe(1);
+    expect(spectator.component.dataSource[1].children[0].name).toBe('Test2');
+  });
+
+  it('should outdent a selected row', () => {
+    spectator.component.dataSource.push({
+      name: 'Test1',
+      weight: null,
+      symbol: '',
+      children: [{ name: 'Test2', weight: null, symbol: '', children: [] }],
+    });
+    const child = spectator.component.dataSource[1].children[0];
+    spectator.component.selectRow(child);
+
+    const outdentButton = spectator.query('button.btn-warning:nth-of-type(2)');
+    spectator.click(outdentButton);
+
+    expect(spectator.component.dataSource.length).toBe(3);
+    expect(spectator.component.dataSource[2].name).toBe('Test2');
+  });
+
+  it('should update name field correctly', () => {
+    const nameInput = spectator.query<HTMLInputElement>('input[type="text"]');
+    spectator.typeInElement('Updated Name', nameInput);
+
+    expect(spectator.component.dataSource[0].name).toBe('Updated Name');
+  });
+
+  it('should disable "Add Child Line" button for grandchild rows', () => {
+    spectator.component.dataSource.push({
+      name: 'Parent',
+      weight: null,
+      symbol: '',
+      children: [
+        {
+          name: 'Child',
+          weight: null,
+          symbol: '',
+          children: [{ name: 'Grandchild', weight: null, symbol: '', children: [] }],
+        },
+      ],
+    });
+    const grandchild = spectator.component.dataSource[1].children[0].children[0];
+    spectator.component.selectRow(grandchild);
+
+    const addChildButton = spectator.query('button.btn-secondary');
+    expect(addChildButton).toBeDisabled();
+  });
+
+  it('should highlight the selected row', () => {
+    const row = spectator.query('tbody tr');
+    spectator.click(row);
+
+    expect(row).toHaveClass('highlight');
+  });
+
+  it('should add a new row at the same level when a row is selected', () => {
+    const selectedNode = spectator.component.dataSource[0];
+    spectator.component.selectRow(selectedNode);
+    const addButton = spectator.query('button.btn-primary');
+    spectator.click(addButton);
+
+    expect(spectator.component.dataSource[1].name).toBe('');
+    expect(spectator.component.dataSource[1].weight).toBeNull();
+    expect(spectator.component.dataSource[1].children.length).toBe(0);
+  });
+
+  it('should correctly add a new child when a parent row is selected', () => {
+    const parent = spectator.component.dataSource[0];
+    spectator.component.selectRow(parent);
+    const addChildButton = spectator.query('button.btn-secondary');
+    spectator.click(addChildButton);
+
+    expect(parent.children.length).toBe(1);
+    expect(parent.children[0].name).toBe('');
+    expect(parent.children[0].weight).toBeNull();
+  });
+
+  it('should move a row up correctly', () => {
+    const row1 = { name: 'Row 1', weight: null, symbol: '', children: [] };
+    const row2 = { name: 'Row 2', weight: null, symbol: '', children: [] };
+    spectator.component.dataSource.push(row1, row2);
+    spectator.component.selectRow(row2);
+
+    const moveUpButton = spectator.query('button.btn-info:nth-of-type(1)');
+    spectator.click(moveUpButton);
+
+    expect(spectator.component.dataSource[1]).toBe(row2);
+    expect(spectator.component.dataSource[2]).toBe(row1);
+  });
+
+  it('should move a row down correctly', () => {
+    const row1 = { name: 'Row 1', weight: null, symbol: '', children: [] };
+    const row2 = { name: 'Row 2', weight: null, symbol: '', children: [] };
+    spectator.component.dataSource.push(row1, row2);
+    spectator.component.selectRow(row1);
+
+    const moveDownButton = spectator.query('button.btn-info:nth-of-type(2)');
+    spectator.click(moveDownButton);
+
+    expect(spectator.component.dataSource[1]).toBe(row2);
+    expect(spectator.component.dataSource[2]).toBe(row1);
+  });
+
+  it('should indent a selected row correctly', () => {
+    const row1 = { name: 'Row 1', weight: null, symbol: '', children: [] };
+    const row2 = { name: 'Row 2', weight: null, symbol: '', children: [] };
+    spectator.component.dataSource.push(row1, row2);
+    spectator.component.selectRow(row2);
+
+    const indentButton = spectator.query('button.btn-warning:nth-of-type(1)');
+    spectator.click(indentButton);
+
+    expect(row1.children.length).toBe(1);
+    expect(row1.children[0]).toBe(row2);
+    expect(spectator.component.dataSource.length).toBe(2);
+  });
+
+  it('should outdent a selected row correctly', () => {
+    const row1 = { name: 'Row 1', weight: null, symbol: '', children: [{ name: 'Row 2', weight: null, symbol: '', children: [] }] };
+    spectator.component.dataSource.push(row1);
+    const row2 = row1.children[0];
+    spectator.component.selectRow(row2);
+
+    const outdentButton = spectator.query('button.btn-warning:nth-of-type(2)');
+    spectator.click(outdentButton);
+
