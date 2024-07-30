@@ -1,0 +1,213 @@
+Pour placer les boutons "Add Line" et "Add Child" à côté du nom dans chaque ligne du tableau, nous devons modifier la structure HTML de chaque ligne. Voici comment vous pouvez le faire :
+
+### Mise à jour du template HTML
+
+Modifiez le template de votre composant pour inclure les boutons "Add Line" et "Add Child" à côté du champ "name" dans chaque ligne :
+
+```html
+<table class="table table-bordered table-hover">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th *ngIf="!isChild(selectedNode)">Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let node of dataSource">
+      <tr [class.highlight]="node.isSelected">
+        <td [style.padding-left.px]="node.level * 20">
+          <input type="text" [(ngModel)]="node.name" (focus)="onFocus(node)" />
+          <button class="btn btn-primary btn-sm" (click)="addLine(node)">Add Line</button>
+          <button class="btn btn-secondary btn-sm" (click)="addChild(node)" [disabled]="isGrandChild(node)">Add Child</button>
+        </td>
+        <td *ngIf="!isChild(node)">
+          <input type="text" [(ngModel)]="node.weight" />
+        </td>
+        <td>
+          <input type="text" [(ngModel)]="node.symbol" />
+        </td>
+        <td>
+          <button class="btn btn-danger btn-sm" (click)="deleteRow(node)">Delete</button>
+          <button class="btn btn-warning btn-sm" (click)="indent(node)">Indent</button>
+          <button class="btn btn-warning btn-sm" (click)="outdent(node)">Outdent</button>
+          <button class="btn btn-info btn-sm" (click)="moveUp(node)">Move Up</button>
+          <button class="btn btn-info btn-sm" (click)="moveDown(node)">Move Down</button>
+        </td>
+      </tr>
+      <ng-container *ngFor="let child of node.children">
+        <tr [class.highlight]="child.isSelected">
+          <td [style.padding-left.px]="(child.level + 1) * 20">
+            <input type="text" [(ngModel)]="child.name" (focus)="onFocus(child)" />
+            <button class="btn btn-primary btn-sm" (click)="addLine(child)">Add Line</button>
+            <button class="btn btn-secondary btn-sm" (click)="addChild(child)" [disabled]="isGrandChild(child)">Add Child</button>
+          </td>
+          <td *ngIf="!isChild(child)">
+            <input type="text" [(ngModel)]="child.weight" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="child.symbol" />
+          </td>
+          <td>
+            <button class="btn btn-danger btn-sm" (click)="deleteRow(child)">Delete</button>
+            <button class="btn btn-warning btn-sm" (click)="indent(child)">Indent</button>
+            <button class="btn btn-warning btn-sm" (click)="outdent(child)">Outdent</button>
+            <button class="btn btn-info btn-sm" (click)="moveUp(child)">Move Up</button>
+            <button class="btn btn-info btn-sm" (click)="moveDown(child)">Move Down</button>
+          </td>
+        </tr>
+        <ng-container *ngFor="let grandChild of child.children">
+          <tr [class.highlight]="grandChild.isSelected">
+            <td [style.padding-left.px]="(grandChild.level + 2) * 20">
+              <input type="text" [(ngModel)]="grandChild.name" (focus)="onFocus(grandChild)" />
+            </td>
+            <td *ngIf="!isChild(grandChild)">
+              <input type="text" [(ngModel)]="grandChild.weight" />
+            </td>
+            <td>
+              <input type="text" [(ngModel)]="grandChild.symbol" />
+            </td>
+            <td>
+              <button class="btn btn-danger btn-sm" (click)="deleteRow(grandChild)">Delete</button>
+              <button class="btn btn-warning btn-sm" (click)="indent(grandChild)">Indent</button>
+              <button class="btn btn-warning btn-sm" (click)="outdent(grandChild)">Outdent</button>
+              <button class="btn btn-info btn-sm" (click)="moveUp(grandChild)">Move Up</button>
+              <button class="btn btn-info btn-sm" (click)="moveDown(grandChild)">Move Down</button>
+            </td>
+          </tr>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </tbody>
+</table>
+```
+
+### Mise à jour du composant TypeScript
+
+Assurez-vous que votre composant TypeScript contient les méthodes `addLine`, `addChild`, `deleteRow`, `indent`, `outdent`, `moveUp`, `moveDown`, `isChild`, `isGrandChild`, et `onFocus`.
+
+Voici un exemple de mise à jour du fichier TypeScript pour inclure ces méthodes :
+
+```ts
+import { Component, OnInit } from '@angular/core';
+
+interface TreeNode {
+  name: string;
+  weight: number | null;
+  symbol: string;
+  children: TreeNode[];
+  isSelected?: boolean;
+  level?: number;
+}
+
+@Component({
+  selector: 'app-my-component',
+  templateUrl: './my-component.component.html',
+  styleUrls: ['./my-component.component.css']
+})
+export class MyComponent implements OnInit {
+  dataSource: TreeNode[] = [];
+  selectedNode: TreeNode | null = null;
+
+  ngOnInit() {
+    this.addInitialLine();
+  }
+
+  addInitialLine() {
+    this.dataSource.push({ name: '', weight: null, symbol: '', children: [], level: 0 });
+  }
+
+  addLine(node: TreeNode | null) {
+    const newNode: TreeNode = { name: '', weight: null, symbol: '', children: [], level: node ? node.level : 0 };
+    if (node) {
+      const parentIndex = this.dataSource.indexOf(node);
+      this.dataSource.splice(parentIndex + 1, 0, newNode);
+    } else {
+      this.dataSource.push(newNode);
+    }
+    this.selectRow(newNode);
+  }
+
+  addChild(node: TreeNode) {
+    const newNode: TreeNode = { name: '', weight: null, symbol: '', children: [], level: (node.level || 0) + 1 };
+    node.children.push(newNode);
+    this.selectRow(newNode);
+  }
+
+  deleteRow(node: TreeNode) {
+    if (node.level === 0) {
+      this.dataSource = this.dataSource.filter(n => n !== node);
+    } else {
+      const parent = this.findParent(node);
+      if (parent) {
+        parent.children = parent.children.filter(n => n !== node);
+      }
+    }
+    this.selectedNode = null;
+  }
+
+  indent(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const grandParent = this.findParent(parent);
+      if (grandParent) {
+        grandParent.children = grandParent.children.filter(n => n !== parent);
+        parent.children.push(node);
+        node.level = (node.level || 0) + 1;
+      }
+    }
+  }
+
+  outdent(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const grandParent = this.findParent(parent);
+      if (grandParent) {
+        parent.children = parent.children.filter(n => n !== node);
+        node.level = (node.level || 0) - 1;
+        grandParent.children.push(node);
+      }
+    }
+  }
+
+  moveUp(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const index = parent.children.indexOf(node);
+      if (index > 0) {
+        [parent.children[index - 1], parent.children[index]] = [parent.children[index], parent.children[index - 1]];
+      }
+    } else {
+      const index = this.dataSource.indexOf(node);
+      if (index > 0) {
+        [this.dataSource[index - 1], this.dataSource[index]] = [this.dataSource[index], this.dataSource[index - 1]];
+      }
+    }
+  }
+
+  moveDown(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const index = parent.children.indexOf(node);
+      if (index < parent.children.length - 1) {
+        [parent.children[index + 1], parent.children[index]] = [parent.children[index], parent.children[index + 1]];
+      }
+    } else {
+      const index = this.dataSource.indexOf(node);
+      if (index < this.dataSource.length - 1) {
+        [this.dataSource[index + 1], this.dataSource[index]] = [this.dataSource[index], this.dataSource[index + 1]];
+      }
+    }
+  }
+
+  selectRow(node: TreeNode) {
+    this.dataSource.forEach(n => n.isSelected = false);
+    this.selectedNode = node;
+    node.isSelected = true;
+  }
+
+  findParent(node: TreeNode): TreeNode | null {
+    for (const n of this.dataSource) {
+      if (n.children.includes(node)) {
+        return
