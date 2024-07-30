@@ -1,0 +1,252 @@
+Pour une version récursive du tableau, nous devons faire quelques ajustements pour que le rendu et les actions sur les boutons soient gérés correctement à chaque niveau. Voici comment procéder :
+
+### Mise à jour du template HTML pour une version récursive
+
+```html
+<table class="table table-bordered table-hover">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Weight</th>
+      <th>Symbol</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let node of dataSource">
+      <ng-template [ngTemplateOutlet]="recursiveList" [ngTemplateOutletContext]="{ $implicit: node, level: 0 }"></ng-template>
+    </ng-container>
+  </tbody>
+
+  <ng-template #recursiveList let-node let-level="level">
+    <tr [class.highlight]="node.isSelected">
+      <td [style.padding-left.px]="level * 20">
+        <input type="text" [(ngModel)]="node.name" (focus)="onFocus(node)" />
+        <button class="btn btn-primary btn-sm" (click)="addLine(node)">Add Line</button>
+        <button class="btn btn-secondary btn-sm" (click)="addChild(node)" [disabled]="isGrandChild(node)">Add Child</button>
+      </td>
+      <td>
+        <input type="text" [(ngModel)]="node.weight" />
+      </td>
+      <td>
+        <input type="text" [(ngModel)]="node.symbol" />
+      </td>
+      <td>
+        <button class="btn btn-danger btn-sm" (click)="deleteRow(node)">Delete</button>
+        <button class="btn btn-warning btn-sm" (click)="indent(node)">Indent</button>
+        <button class="btn btn-warning btn-sm" (click)="outdent(node)">Outdent</button>
+        <button class="btn btn-info btn-sm" (click)="moveUp(node)">Move Up</button>
+        <button class="btn btn-info btn-sm" (click)="moveDown(node)">Move Down</button>
+      </td>
+    </tr>
+    <ng-container *ngFor="let child of node.children">
+      <ng-template [ngTemplateOutlet]="recursiveList" [ngTemplateOutletContext]="{ $implicit: child, level: level + 1 }"></ng-template>
+    </ng-container>
+  </ng-template>
+</table>
+```
+
+### Mise à jour du composant TypeScript
+
+Assurez-vous que les méthodes et propriétés suivantes sont présentes dans votre composant TypeScript :
+
+```ts
+import { Component, OnInit } from '@angular/core';
+
+interface TreeNode {
+  name: string;
+  weight: number | null;
+  symbol: string;
+  children: TreeNode[];
+  isSelected?: boolean;
+}
+
+@Component({
+  selector: 'app-my-component',
+  templateUrl: './my-component.component.html',
+  styleUrls: ['./my-component.component.css']
+})
+export class MyComponent implements OnInit {
+  dataSource: TreeNode[] = [];
+  selectedNode: TreeNode | null = null;
+
+  ngOnInit() {
+    this.addInitialLine();
+  }
+
+  addInitialLine() {
+    this.dataSource.push({ name: '', weight: null, symbol: '', children: [] });
+  }
+
+  addLine(node: TreeNode | null) {
+    const newNode: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    if (node) {
+      const parent = this.findParent(node);
+      if (parent) {
+        const index = parent.children.indexOf(node);
+        parent.children.splice(index + 1, 0, newNode);
+      } else {
+        const index = this.dataSource.indexOf(node);
+        this.dataSource.splice(index + 1, 0, newNode);
+      }
+    } else {
+      this.dataSource.push(newNode);
+    }
+    this.selectRow(newNode);
+  }
+
+  addChild(node: TreeNode) {
+    const newNode: TreeNode = { name: '', weight: null, symbol: '', children: [] };
+    node.children.push(newNode);
+    this.selectRow(newNode);
+  }
+
+  deleteRow(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      parent.children = parent.children.filter(n => n !== node);
+    } else {
+      this.dataSource = this.dataSource.filter(n => n !== node);
+    }
+    this.selectedNode = null;
+  }
+
+  indent(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const grandParent = this.findParent(parent);
+      if (grandParent) {
+        parent.children = parent.children.filter(n => n !== node);
+        grandParent.children.push(node);
+        node.children.forEach(child => {
+          grandParent.children.push(child);
+          parent.children = parent.children.filter(n => n !== child);
+        });
+      }
+    }
+  }
+
+  outdent(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const grandParent = this.findParent(parent);
+      if (grandParent) {
+        parent.children = parent.children.filter(n => n !== node);
+        grandParent.children.push(node);
+      }
+    }
+  }
+
+  moveUp(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const index = parent.children.indexOf(node);
+      if (index > 0) {
+        [parent.children[index - 1], parent.children[index]] = [parent.children[index], parent.children[index - 1]];
+      }
+    } else {
+      const index = this.dataSource.indexOf(node);
+      if (index > 0) {
+        [this.dataSource[index - 1], this.dataSource[index]] = [this.dataSource[index], this.dataSource[index - 1]];
+      }
+    }
+  }
+
+  moveDown(node: TreeNode) {
+    const parent = this.findParent(node);
+    if (parent) {
+      const index = parent.children.indexOf(node);
+      if (index < parent.children.length - 1) {
+        [parent.children[index + 1], parent.children[index]] = [parent.children[index], parent.children[index + 1]];
+      }
+    } else {
+      const index = this.dataSource.indexOf(node);
+      if (index < this.dataSource.length - 1) {
+        [this.dataSource[index + 1], this.dataSource[index]] = [this.dataSource[index], this.dataSource[index + 1]];
+      }
+    }
+  }
+
+  selectRow(node: TreeNode) {
+    this.clearSelection(this.dataSource);
+    this.selectedNode = node;
+    node.isSelected = true;
+  }
+
+  findParent(node: TreeNode, parentNode: TreeNode | null = null, dataSource: TreeNode[] = this.dataSource): TreeNode | null {
+    for (const n of dataSource) {
+      if (n.children.includes(node)) {
+        return n;
+      }
+      const foundNode = this.findParent(node, n, n.children);
+      if (foundNode) {
+        return foundNode;
+      }
+    }
+    return null;
+  }
+
+  clearSelection(dataSource: TreeNode[]) {
+    for (const node of dataSource) {
+      node.isSelected = false;
+      this.clearSelection(node.children);
+    }
+  }
+
+  isGrandChild(node: TreeNode): boolean {
+    const parent = this.findParent(node);
+    if (parent) {
+      const grandParent = this.findParent(parent);
+      return !!grandParent;
+    }
+    return false;
+  }
+}
+```
+
+### Explications des modifications
+
+1. **Template HTML** :
+   - Utilisation de `ng-template` avec `ngTemplateOutlet` pour gérer la récursivité.
+   - Chaque ligne inclut les boutons "Add Line" et "Add Child" à côté du champ "name".
+
+2. **Composant TypeScript** :
+   - Ajout des méthodes nécessaires pour ajouter, supprimer, indenter, et déplacer les lignes.
+   - Utilisation de la méthode `findParent` pour trouver le parent d'un nœud donné.
+   - Utilisation de la méthode `clearSelection` pour désélectionner tous les nœuds avant de sélectionner un nouveau nœud.
+   - `isGrandChild` pour déterminer si un nœud est un petit-enfant (et donc désactiver le bouton "Add Child").
+
+### Tests unitaires
+
+Voici comment mettre à jour les tests unitaires pour vérifier que les fonctionnalités de focus et de boutons fonctionnent correctement :
+
+```ts
+import { Spectator, createComponentFactory } from '@ngneat/spectator';
+import { fakeAsync, tick } from '@angular/core/testing';
+import { MyComponent } from './my-component.component';
+
+describe('MyComponent', () => {
+  let spectator: Spectator<MyComponent>;
+  const createComponent = createComponentFactory(MyComponent);
+
+  beforeEach(() => {
+    spectator = createComponent();
+  });
+
+  it('should focus on the name input when the page loads', fakeAsync(() => {
+    spectator.detectChanges();
+    tick();
+    const nameInput = spectator.query<HTMLInputElement>('input[type="text"]');
+    expect(document.activeElement).toBe(nameInput);
+  }));
+
+  it('should focus on the name input when a new row is added', fakeAsync(() => {
+    const addButton = spectator.query('button.btn-primary');
+    spectator.click(addButton);
+    spectator.detectChanges();
+    tick();
+    const nameInput = spectator.query<HTMLInputElement>('input[type="text"]');
+    expect(document.activeElement).toBe(nameInput);
+  }));
+
+  it('should add a new row at the end when no row is selected', () => {
