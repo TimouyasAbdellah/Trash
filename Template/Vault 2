@@ -1,0 +1,48 @@
+Merci pour la précision. Voici la version HTML mise à jour pour lister les secrets manquants ou différents :
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Important: Production Configuration</title>
+</head>
+<body>
+    <p><strong>📢 Important: Production Configuration Different from Homologation ⚠️</strong></p>
+    
+    <p>Hi Team,</p>
+    
+    <p>🔍 <strong>Please Note:</strong><br>
+    The configuration in the <strong>production environment</strong> 🏭 is <strong>not the same</strong> as in the <strong>homologation environment</strong> 🔧.</p>
+    
+    <p>🚨 <strong>This discrepancy could impact the application's behavior</strong>, so please be mindful of this when performing your tasks. It's crucial that we identify and address any differences to avoid potential issues.</p>
+
+    <p>📝 <strong>Missing or Different Secrets:</strong></p>
+    <ul>
+        <li>🔒 <strong>Secret 1:</strong> Description of the missing or different secret.</li>
+        <li>🔒 <strong>Secret 2:</strong> Description of the missing or different secret.</li>
+        <li>🔒 <strong>Secret 3:</strong> Description of the missing or different secret.</li>
+        <!-- Add more secrets as needed -->
+    </ul>
+
+    <p>✅ <strong>Action Required:</strong><br>
+    Let's collaborate to align these secrets where necessary and ensure everything runs smoothly.</p>
+    
+    <p>❓ <strong>Questions or concerns?</strong><br>
+    Feel free to reach out to me directly.</p>
+    
+    <p>Thanks for your attention!</p>
+    
+    <p>Best regards,<br>
+    [Your Name]<br>
+    [Your Position]</p>
+</body>
+</html>
+```
+
+### Points de personnalisation :
+1. **Liste des secrets manquants ou différents** : Remplacez les éléments de la liste (`Secret 1`, `Secret 2`, etc.) par les secrets spécifiques qui manquent ou qui sont différents entre les environnements.
+2. **Ajout de nouveaux secrets** : Si vous avez plus de secrets à lister, vous pouvez ajouter de nouveaux éléments `<li>` sous la balise `<ul>`.
+
+Cette version est adaptée pour traiter spécifiquement les secrets, qui sont souvent des informations sensibles et critiques dans une configuration d'environnement.
