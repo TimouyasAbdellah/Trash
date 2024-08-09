@@ -1,0 +1,48 @@
+Voici une version HTML du message avec une section supplémentaire pour lister les éléments manquants ou différents dans la configuration :
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Important: Production Configuration</title>
+</head>
+<body>
+    <p><strong>📢 Important: Production Configuration Different from Homologation ⚠️</strong></p>
+    
+    <p>Hi Team,</p>
+    
+    <p>🔍 <strong>Please Note:</strong><br>
+    The configuration in the <strong>production environment</strong> 🏭 is <strong>not the same</strong> as in the <strong>homologation environment</strong> 🔧.</p>
+    
+    <p>🚨 <strong>This discrepancy could impact the application's behavior</strong>, so please be mindful of this when performing your tasks. It's crucial that we identify and address any differences to avoid potential issues.</p>
+
+    <p>📝 <strong>Missing or Different Configurations:</strong></p>
+    <ul>
+        <li>⚙️ <strong>Parameter 1:</strong> Description of the difference or missing item.</li>
+        <li>⚙️ <strong>Parameter 2:</strong> Description of the difference or missing item.</li>
+        <li>⚙️ <strong>Parameter 3:</strong> Description of the difference or missing item.</li>
+        <!-- Add more items as needed -->
+    </ul>
+
+    <p>✅ <strong>Action Required:</strong><br>
+    Let's collaborate to align the configurations where necessary and ensure everything runs smoothly.</p>
+    
+    <p>❓ <strong>Questions or concerns?</strong><br>
+    Feel free to reach out to me directly.</p>
+    
+    <p>Thanks for your attention!</p>
+    
+    <p>Best regards,<br>
+    [Your Name]<br>
+    [Your Position]</p>
+</body>
+</html>
+```
+
+### Instructions pour personnalisation :
+1. **Liste des éléments manquants ou différents** : Remplacez les éléments de la liste (`Parameter 1`, `Parameter 2`, etc.) par les éléments spécifiques qui manquent ou qui sont différents entre les environnements de production et d'homologation.
+2. **Ajout de nouveaux éléments** : Si vous avez plus d'éléments à lister, vous pouvez simplement ajouter de nouveaux `<li>` (list item) sous la balise `<ul>`.
+
+Cette version vous permet d'inclure de manière claire et organisée les différences spécifiques dans la configuration, ce qui aidera votre équipe à comprendre et à résoudre les problèmes plus rapidement.
