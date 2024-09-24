@@ -1,0 +1,51 @@
+Bonjour ! Vous pouvez utiliser Cypress pour vérifier la disponibilité des API avant d'exécuter vos tests en ajoutant une vérification préliminaire. Voici comment vous pouvez procéder :
+
+1. Faire une requête pour vérifier l'API : Avant d'exécuter vos tests, vous pouvez utiliser la fonction cy.request() de Cypress pour vérifier la disponibilité des API.
+
+
+2. Conditionner l'exécution : Une fois la réponse obtenue, vous pouvez conditionner l'exécution de vos tests selon que l'API est disponible ou non.
+
+
+
+Voici un exemple de code pour le faire :
+
+describe('Test conditionné par l\'API', () => {
+  let apiDisponible = false;
+
+  before(() => {
+    // Vérifier la disponibilité de l'API
+    cy.request({
+      url: 'https://api.exemple.com/health',
+      failOnStatusCode: false // Pour éviter que Cypress échoue si l'API est indisponible
+    }).then((response) => {
+      if (response.status === 200) {
+        apiDisponible = true;
+      }
+    });
+  });
+
+  it('Test dépendant de l\'API', function () {
+    if (!apiDisponible) {
+      cy.log('L\'API est indisponible. Test non exécuté.');
+      this.skip(); // Sauter le test si l'API est indisponible
+    } else {
+      // Vos tests lorsque l'API est disponible
+      cy.visit('https://votre-application.com');
+      // autres actions de test ici
+    }
+  });
+});
+
+Explication :
+
+cy.request() envoie une requête à l'API. Si l'API répond avec un statut 200, cela signifie qu'elle est disponible.
+
+Si l'API n'est pas disponible, on utilise this.skip() pour ignorer le test.
+
+Vous pouvez remplacer l'URL de l'API par l'endpoint de votre choix pour vérifier la disponibilité.
+
+
+Cela vous permet d'éviter les erreurs inutiles si l'API externe est indisponible.
+
+N'hésitez pas à ajuster selon vos besoins !
+
