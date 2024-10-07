@@ -1,0 +1,28 @@
+To make a Cypress request with basic authentication, you can set the Authorization header in the request options. Here's an example of how you can do it:
+
+Using cy.request() with Basic Authentication
+
+describe('Basic Auth with Cypress', () => {
+  it('makes a request with basic authentication', () => {
+    cy.request({
+      method: 'GET',
+      url: 'https://your-api-url.com/endpoint', // Replace with your API endpoint
+      headers: {
+        Authorization: 'Basic ' + btoa('username:password'), // Replace with your credentials
+      },
+    }).then((response) => {
+      expect(response.status).to.eq(200); // Check the status or handle the response
+      // Additional assertions can go here
+    });
+  });
+});
+
+Explanation:
+
+The Authorization header uses the Basic scheme, followed by the base64-encoded string of the username and password (btoa('username:password')).
+
+Replace 'username' and 'password' with your actual credentials.
+
+
+This will send a request with the necessary authentication details.
+
