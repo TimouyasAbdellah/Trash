@@ -1,0 +1,170 @@
+Certainly! Here’s the discussion translated into English so that it can serve as documentation for your team:
+
+
+---
+
+Best Practices for Writing Robust Cypress Tests
+
+Cypress is a great solution for automated regression testing. However, tests written with Cypress can sometimes be fragile. Below are some tips and best practices to make your Cypress tests more robust and reliable.
+
+1. Use stable selectors (independent of styling)
+
+Avoid using selectors like CSS classes or IDs that can frequently change. Instead, add specific attributes like data-cy or data-test for testing purposes.
+
+Bad:
+
+cy.get('.submit-btn').click();
+
+Good:
+
+cy.get('[data-cy="submit-button"]').click();
+
+
+2. Write clear assertions
+
+Don’t just click elements or submit forms without verifying the expected state. Every action should be followed by one or more assertions to validate the behavior.
+
+Example:
+
+cy.get('[data-cy="submit-button"]').click();
+cy.get('[data-cy="success-message"]').should('be.visible');
+
+
+3. Smart waiting in Cypress
+
+Cypress automatically waits for elements, but for complex actions, you can use methods like should(), then(), and wait() to ensure the element is fully loaded before interacting with it.
+
+Bad: Waiting for a fixed time can make tests fragile.
+
+cy.wait(5000); // Depends on server delay
+
+Good: Use assertions based on element states.
+
+cy.get('[data-cy="loader"]').should('not.exist');
+cy.get('[data-cy="content"]').should('be.visible');
+
+
+4. Reduce duplication with custom commands
+
+Create custom commands for repetitive tasks. This makes the code more readable and easier to maintain.
+
+Example:
+
+// cypress/support/commands.js
+Cypress.Commands.add('login', (username, password) => {
+  cy.get('[data-cy="username"]').type(username);
+  cy.get('[data-cy="password"]').type(password);
+  cy.get('[data-cy="login-button"]').click();
+});
+
+// In the test
+cy.login('testUser', 'password123');
+
+
+5. Cache network requests (API mocking)
+
+If your tests depend on external APIs or changing data, use cy.intercept() to mock the responses and avoid false negatives caused by unstable API calls.
+
+Example:
+
+cy.intercept('GET', '/api/users', { fixture: 'users.json' }).as('getUsers');
+cy.visit('/users');
+cy.wait('@getUsers').its('response.statusCode').should('eq', 200);
+
+
+6. Avoid end-to-end tests for everything
+
+End-to-end tests are useful but heavy. Use them for critical scenarios and, for other cases, prefer integration or unit tests.
+
+Focus on critical paths instead of testing every detail.
+
+
+7. Structure tests logically (Arrange, Act, Assert)
+
+Organize your tests into logical steps to improve readability and maintainability:
+
+Arrange: Prepare the necessary data.
+
+Act: Execute the action to be tested.
+
+Assert: Check the expected result.
+
+
+Example:
+
+it('should display a success message after form submission', () => {
+  // Arrange
+  cy.visit('/form');
+  cy.get('[data-cy="name"]').type('John Doe');
+
+  // Act
+  cy.get('[data-cy="submit-button"]').click();
+
+  // Assert
+  cy.get('[data-cy="success-message"]').should('contain', 'Thank you');
+});
+
+
+8. Use beforeEach to avoid repetition
+
+If multiple tests require common setup (e.g., login or state preparation), use beforeEach to centralize that setup.
+
+Example:
+
+beforeEach(() => {
+  cy.visit('/login');
+  cy.login('testUser', 'password123');
+});
+
+it('should navigate to dashboard', () => {
+  cy.url().should('include', '/dashboard');
+});
+
+it('should display welcome message', () => {
+  cy.get('[data-cy="welcome-message"]').should('be.visible');
+});
+
+
+9. Manage state data (test isolation)
+
+Ensure each test starts in a clean, independent state. Avoid tests sharing data or states to prevent dependencies between them.
+
+Use fixtures or reset the server’s state between tests if needed.
+
+
+Example:
+
+beforeEach(() => {
+  cy.request('POST', '/reset-database');
+});
+
+10. Keep tests short and specific
+
+Each test should cover a specific scenario. If a test covers too much, it becomes harder to maintain and debug. Break down large tests into smaller, more specialized ones.
+
+
+11. Track test performance
+
+Tests can become slow as the suite grows. Use tools like Cypress Dashboard to analyze performance and identify tests that slow down the overall suite.
+
+
+12. Run tests across environments and browsers
+
+Ensure your tests work across different environments (local, CI, staging) and browsers (Chrome, Firefox, etc.) to catch environment-specific or browser-specific issues.
+
+
+13. Use snapshots to test UI
+
+If you need to test UI components precisely, consider using snapshots to compare the current state of the UI to an expected state.
+
+
+
+---
+
+By following these practices, you will significantly reduce the fragility of Cypress tests, making them more robust and durable. This will improve the reliability of tests in production or development environments and avoid unnecessary test failures.
+
+
+---
+
+This should provide a solid foundation for your team's Cypress testing documentation!
+
