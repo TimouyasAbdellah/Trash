@@ -1,0 +1,158 @@
+Here are additional tips and best practices to further improve the robustness and maintainability of your Cypress tests:
+
+1. Minimize reliance on flaky elements
+
+Flaky elements, like animations, loading spinners, or elements that depend on third-party services, can introduce instability. Try to avoid interacting with elements that are often slow to load or that can be affected by external factors. If you must test such elements, use conditional logic or assertions that wait for the element to stabilize.
+
+Example:
+
+cy.get('[data-cy="loading-spinner"]').should('not.exist');
+cy.get('[data-cy="content"]').should('be.visible');
+
+
+2. Use Cypress retries
+
+Enable test retries in case of failures caused by timing issues. Cypress allows you to configure retries both globally and per test. This can be useful for transient issues, particularly with CI environments where tests may fail intermittently due to factors outside your control.
+
+Example (in cypress.json):
+
+{
+  "retries": {
+    "runMode": 2,
+    "openMode": 0
+  }
+}
+
+This will retry failed tests up to 2 times when running in CI mode (runMode), but not when running locally (openMode).
+
+
+3. Leverage Cypress's built-in commands wisely
+
+Use commands like cy.request() and cy.visit() effectively to set up test states. For example, if a certain test requires a specific user to be logged in or a database state to be prepared, instead of doing this through the UI (which can be slow and fragile), set it up via the API or directly with HTTP requests.
+
+Example:
+
+cy.request('POST', '/api/login', { username: 'user', password: 'pass' });
+cy.visit('/dashboard');
+
+
+4. Test state management through API calls
+
+When possible, set up application state (e.g., creating a user or setting session data) through API calls, rather than interacting with the UI. This is much faster and avoids unnecessary interactions with the frontend, making your tests more reliable.
+
+Example (setting up a user through API before a test):
+
+beforeEach(() => {
+  cy.request('POST', '/api/reset-database');
+  cy.request('POST', '/api/create-user', { username: 'testUser', password: 'password123' });
+});
+
+
+5. Utilize fixtures for test data
+
+Fixtures allow you to store test data as JSON files, which can then be loaded into tests. This not only makes your tests cleaner but also decouples them from hardcoded data.
+
+Example (loading a fixture):
+
+cy.fixture('user-data.json').then((userData) => {
+  cy.request('POST', '/api/create-user', userData);
+});
+
+
+6. Use aliases for API requests and routes
+
+By using cy.intercept() to create aliases for API calls, you can wait for specific requests to complete before continuing with your tests. This ensures that your tests don’t proceed before the necessary data is available.
+
+Example:
+
+cy.intercept('GET', '/api/users').as('getUsers');
+cy.visit('/users');
+cy.wait('@getUsers').its('response.statusCode').should('eq', 200);
+
+
+7. Parallelize tests in CI for faster feedback
+
+If your test suite is large, you can run tests in parallel to reduce execution time, especially in continuous integration (CI). Cypress supports parallel test execution in CI environments, allowing you to distribute tests across multiple machines.
+
+Best practice: Split long-running tests into different groups that can be executed simultaneously.
+
+
+8. Mock browser storage and cookies
+
+Instead of relying on the actual browser storage or cookies being set by UI actions, you can directly manipulate browser storage using Cypress commands. This will speed up your tests and make them more reliable.
+
+Example (setting a token in local storage):
+
+cy.window().then((win) => {
+  win.localStorage.setItem('authToken', '12345');
+});
+
+
+9. Keep tests independent
+
+Each test should be able to run independently of the others. Avoid dependencies where one test sets up data or a state that another test relies on. Tests that depend on the outcomes of previous tests can cause cascading failures, making debugging difficult.
+
+Tip: Ensure that each test begins with a clean state by resetting the environment (database, local storage, etc.) before each test.
+
+
+10. Use cy.wrap() for dealing with non-Cypress code
+
+If you are dealing with custom JavaScript functions or non-Cypress asynchronous code, use cy.wrap() to integrate it into Cypress’s command chain. This allows you to handle promises or interact with custom functions more smoothly.
+
+Example:
+
+const customFunction = () => Promise.resolve('Done');
+cy.wrap(customFunction()).should('equal', 'Done');
+
+
+11. Be mindful of test isolation in CI
+
+Some CI environments may have different setups compared to local environments. Tests that pass locally might fail on CI due to environmental differences. Ensure that the test environment is consistent across both development and CI pipelines (e.g., using the same browser versions or configurations).
+
+
+12. Use cy.clock() and cy.tick() to control time-dependent functionality
+
+For tests that involve timers, animations, or other time-based actions, you can use cy.clock() to control the flow of time. This allows you to bypass waiting for real-time delays.
+
+Example (freezing time):
+
+cy.clock();
+cy.get('[data-cy="start-timer"]').click();
+cy.tick(10000); // Fast forward time by 10 seconds
+cy.get('[data-cy="timer"]').should('have.text', '10 seconds');
+
+
+13. Screenshot and video capture for debugging
+
+Cypress automatically captures screenshots and videos on test failure in CI. These logs are extremely useful when debugging, especially for transient issues that are hard to reproduce locally. Ensure that video capture is enabled in your CI environment to help track down problems.
+
+
+14. Use the Cypress Dashboard for insights
+
+Cypress offers a Dashboard service that helps track flaky tests, performance issues, and failure patterns. This can be a powerful tool in a large test suite, providing insights into test stability over time.
+
+Best practice: Regularly monitor test performance and flakiness reports to proactively address issues.
+
+
+15. Modularize test suites for scalability
+
+As your test suite grows, group related tests into separate files or folders. Organizing your tests based on features, modules, or functional areas ensures better maintainability.
+
+Tip: Keep your test files small and focused to make the suite easier to manage.
+
+
+16. Log custom messages for debugging
+
+Add custom logging messages using cy.log() to provide more context about what the test is doing. This is especially helpful when debugging complex tests.
+
+Example:
+
+cy.log('Checking if the login button is visible');
+cy.get('[data-cy="login-button"]').should('be.visible');
+
+
+
+---
+
+These additional tips should help ensure that your Cypress tests are not only robust and reliable but also scalable and efficient in both local and CI environments. By following these practices, you can reduce test failures, improve maintainability, and ensure your test suite provides fast feedback on your code's health.
+
