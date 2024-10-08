@@ -1,0 +1,91 @@
+If you don’t have Cypress Dashboard and still want to run Cypress tests in parallel by distributing each spec file across multiple workers in your CI pipeline, you can manage this without the Dashboard by manually splitting the spec files. Here's how you can achieve that using GitHub Actions (or any other CI service) without the need for Cypress's Dashboard.
+
+Running Cypress in Parallel Without Cypress Dashboard
+
+Here’s a step-by-step example for parallelizing Cypress tests per spec file by splitting them manually across jobs:
+
+1. Manually Splitting Spec Files
+
+You’ll need to manually divide your spec files across CI jobs. This can be achieved by specifying which specs each job should run.
+
+Example for GitHub Actions:
+
+Create the .github/workflows/cypress.yml file as shown below:
+
+name: Cypress Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cypress:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Define different sets of spec files to run in parallel jobs
+        spec-set: [
+          "cypress/integration/spec1.cy.js",
+          "cypress/integration/spec2.cy.js",
+          "cypress/integration/spec3.cy.js",
+          "cypress/integration/spec4.cy.js",
+          "cypress/integration/spec5.cy.js",
+          "cypress/integration/spec6.cy.js"
+        ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Cypress tests for specific specs
+        run: npx cypress run --spec ${{ matrix.spec-set }}
+
+2. Explanation:
+
+strategy.matrix.spec-set: This matrix configuration allows you to define a set of spec files. Each job will run a specific spec file, and you can define how many jobs run in parallel.
+
+In this example, there are 6 spec files (spec1.cy.js, spec2.cy.js, etc.), and each job will pick up one of these spec files to execute.
+
+
+run: npx cypress run --spec: This command ensures that each job runs only the specific spec file passed from the matrix.
+
+
+3. Running Multiple Jobs in Parallel:
+
+GitHub Actions (or any other CI service) will run each of these jobs in parallel, meaning all the spec files will be executed simultaneously but in different jobs. This method doesn’t require the Cypress Dashboard to handle parallelization.
+
+If you have more spec files than jobs, you can adjust the matrix or group the specs into different sets and run them in parallel.
+
+Example of Grouping Specs:
+
+You can group specs together and split them across fewer jobs:
+
+strategy:
+  matrix:
+    spec-set: [
+      "cypress/integration/spec1.cy.js,cypress/integration/spec2.cy.js",
+      "cypress/integration/spec3.cy.js,cypress/integration/spec4.cy.js",
+      "cypress/integration/spec5.cy.js,cypress/integration/spec6.cy.js"
+    ]
+
+In this case, each job will execute 2 spec files instead of one, reducing the number of jobs required but still running them in parallel.
+
+4. Adjust the Number of Jobs in CI:
+
+In your CI configuration, ensure that you can run multiple jobs in parallel. Most CI systems allow you to specify the number of concurrent jobs, so you can maximize the parallelism based on your infrastructure.
+
+Conclusion:
+
+Without using the Cypress Dashboard, you can still achieve parallelization by manually splitting your spec files across multiple jobs. Each CI job will handle a different spec file or set of spec files, and all jobs will run simultaneously, significantly reducing the total runtime of your tests. This method works across various CI platforms like GitHub Actions, CircleCI, or GitLab CI, and can be customized based on your test suite’s size and needs.
+
