@@ -1,0 +1,56 @@
+Pour résoudre ce problème, vous pouvez automatiser la vérification du texte dans chaque ligne du tableau et déterminer si une condition est remplie (par exemple, si une case est cochée ou si un élément est activé) en fonction de sa position.
+
+Voici comment vous pourriez procéder avec un framework comme Cypress, étant donné que vous l'utilisez pour les tests de non-régression :
+
+Étapes à suivre :
+
+1. Sélectionner toutes les lignes du tableau.
+
+
+2. Boucler à travers chaque ligne.
+
+
+3. Extraire le texte dans chaque cellule (ou autre élément).
+
+
+4. Vérifier une condition (si l'élément est activé ou désactivé) en fonction de la position ou d'une autre propriété.
+
+
+
+Exemple de code avec Cypress :
+
+// Accéder au tableau
+cy.get('tbody > tr').each(($row, index) => {
+  // Sélectionner toutes les cellules dans une ligne donnée
+  cy.wrap($row).find('td').each(($cell) => {
+    // Extraire et imprimer le texte de chaque cellule
+    const text = $cell.text();
+    cy.log(`Texte de la cellule : ${text}`);
+    
+    // Vérifiez si la condition est remplie
+    // Par exemple, si le texte correspond à une valeur spécifique
+    if (text.includes('VotreTexte')) {
+      // Faites quelque chose selon votre logique, par exemple, vérifier un statut activé ou désactivé
+      cy.wrap($row).find('input[type="checkbox"]').should('be.checked');
+    }
+  });
+});
+
+Explication :
+
+cy.get('tbody > tr') : Sélectionne toutes les lignes du tableau.
+
+cy.wrap($row).find('td') : Pour chaque ligne, on extrait toutes les cellules de type <td>.
+
+$cell.text() : Récupère le texte dans chaque cellule.
+
+Vérification des conditions : Une fois que vous avez le texte, vous pouvez appliquer des vérifications comme voir si une case est cochée ou si un certain élément est présent en fonction du contenu de cette ligne.
+
+
+Optimisations possibles :
+
+Si votre tableau a des classes ou des identifiants plus spécifiques, vous pourriez affiner les sélecteurs CSS pour une meilleure précision et des tests plus rapides.
+
+
+Cela vous permettrait de vérifier efficacement chaque ligne de votre tableau et de faire les tests en fonction du contenu ou de la position des éléments. Est-ce que cela correspond à ce que vous voulez réaliser ?
+
