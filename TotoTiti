@@ -1,0 +1,189 @@
+Pour prendre en compte cette structure plus complexe, nous allons modifier le système pour afficher les rapports regroupés par mois, puis par value date. Voici les étapes :
+
+
+---
+
+1. Format des données depuis le backend
+
+Le backend doit fournir une structure comme suit :
+
+{
+  "Q1 2024": {
+    "January": [
+      { "valueDate": "2024-01-15", "reportName": "Report 1" },
+      { "valueDate": "2024-01-20", "reportName": "Report 2" }
+    ],
+    "February": [
+      { "valueDate": "2024-02-10", "reportName": "Report A" }
+    ]
+  },
+  "Q2 2024": {
+    "April": [
+      { "valueDate": "2024-04-05", "reportName": "Report X" }
+    ]
+  }
+}
+
+Ici, chaque quarter contient une liste de mois, et chaque mois contient une liste de rapports avec un champ valueDate et reportName.
+
+
+---
+
+2. Service Angular
+
+Le service doit maintenant gérer cette nouvelle structure. Modifie le service pour retourner des données regroupées par mois et value date :
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class BbReportsService {
+  private apiUrl = 'URL_DU_BACKEND'; // Remplace par l'URL de ton backend
+
+  constructor(private http: HttpClient) {}
+
+  getQuarterlyReports(): Observable<{
+    [key: string]: { [month: string]: { valueDate: string; reportName: string }[] };
+  }> {
+    return this.http.get<{
+      [key: string]: { [month: string]: { valueDate: string; reportName: string }[] };
+    }>(`${this.apiUrl}/quarterly-reports`);
+  }
+}
+
+
+---
+
+3. Composant Angular
+
+Dans bb-reports.component.ts, adapte la logique pour gérer cette structure complexe :
+
+import { Component, OnInit } from '@angular/core';
+import { BbReportsService } from './bb-reports.service';
+
+@Component({
+  selector: 'app-bb-reports',
+  templateUrl: './bb-reports.component.html',
+  styleUrls: ['./bb-reports.component.css'],
+})
+export class BbReportsComponent implements OnInit {
+  quarters: string[] = [];
+  reports: { [key: string]: { [month: string]: { valueDate: string; reportName: string }[] } } = {};
+  selectedQuarter: string = '';
+  selectedMonthlyReports: { [month: string]: { valueDate: string; reportName: string }[] } = {};
+
+  constructor(private bbReportsService: BbReportsService) {}
+
+  ngOnInit(): void {
+    this.loadReports();
+  }
+
+  loadReports(): void {
+    this.bbReportsService.getQuarterlyReports().subscribe(
+      (data) => {
+        this.reports = data;
+        this.quarters = Object.keys(data); // Liste des quarters
+      },
+      (error) => {
+        console.error('Erreur lors de la récupération des rapports', error);
+      }
+    );
+  }
+
+  onQuarterSelect(quarter: string): void {
+    this.selectedQuarter = quarter;
+    this.selectedMonthlyReports = this.reports[quarter] || {}; // Charge les mois et rapports du quarter sélectionné
+  }
+}
+
+
+---
+
+4. Template HTML
+
+Dans bb-reports.component.html, affiche les données groupées par mois, puis par value date :
+
+<div>
+  <h2>BB Reports</h2>
+
+  <!-- Dropdown pour sélectionner le quarter -->
+  <label for="quarter-select">Select a Quarter:</label>
+  <select
+    id="quarter-select"
+    [(ngModel)]="selectedQuarter"
+    (change)="onQuarterSelect(selectedQuarter)"
+  >
+    <option *ngFor="let quarter of quarters" [value]="quarter">
+      {{ quarter }}
+    </option>
+  </select>
+
+  <!-- Affichage des rapports mensuels -->
+  <div *ngIf="selectedQuarter && selectedMonthlyReports">
+    <h3>Reports for {{ selectedQuarter }}</h3>
+
+    <div *ngFor="let month of getMonths(selectedMonthlyReports)">
+      <h4>{{ month }}</h4>
+
+      <ul>
+        <li *ngFor="let report of selectedMonthlyReports[month]">
+          {{ report.valueDate }} - {{ report.reportName }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Message si aucun rapport -->
+  <p *ngIf="!Object.keys(selectedMonthlyReports).length && selectedQuarter">
+    No reports available for {{ selectedQuarter }}.
+  </p>
+</div>
+
+
+---
+
+5. Fonction pour obtenir les mois
+
+Ajoute une méthode pour récupérer les mois disponibles dans selectedMonthlyReports :
+
+getMonths(monthlyReports: { [month: string]: any[] }): string[] {
+  return Object.keys(monthlyReports);
+}
+
+
+---
+
+6. Comportement attendu
+
+1. Lors de la sélection d’un quarter, les mois associés sont affichés.
+
+
+2. Chaque mois affiche ses rapports, triés par value date.
+
+
+3. Si un quarter n’a pas de rapports, un message informatif est affiché.
+
+
+
+
+---
+
+7. Tests
+
+Assure-toi que les données du backend respectent la structure attendue et teste les cas suivants :
+
+Quarter avec plusieurs mois et rapports.
+
+Quarter sans rapports.
+
+Affichage correct des rapports triés par mois et par value date.
+
+
+
+---
+
+Avec cette mise en œuvre, tu obtiens une solution robuste et facilement extensible pour afficher les rapports regroupés par mois et triés par value date !
+
