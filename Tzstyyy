@@ -1,0 +1,176 @@
+Voici une suite de tests unitaires basée sur Jest et Spectator pour tester tous les cas d'utilisation du composant que nous venons de créer. Nous utiliserons Spectator pour simplifier le testing des composants Angular.
+
+
+---
+
+Installation de Spectator (si ce n’est pas encore fait)
+
+Ajoutez Spectator à votre projet Angular :
+
+npm install @ngneat/spectator --save-dev
+
+
+---
+
+Tests unitaires
+
+Fichier de tests : bb-reports.component.spec.ts
+
+import { createComponentFactory, Spectator } from '@ngneat/spectator';
+import { BbReportsComponent } from './bb-reports.component';
+import { FormsModule } from '@angular/forms';
+
+describe('BbReportsComponent', () => {
+  let spectator: Spectator<BbReportsComponent>;
+  const createComponent = createComponentFactory({
+    component: BbReportsComponent,
+    imports: [FormsModule],
+  });
+
+  beforeEach(() => {
+    spectator = createComponent();
+  });
+
+  it('should create the component', () => {
+    expect(spectator.component).toBeTruthy();
+  });
+
+  describe('Quarter Navigation', () => {
+    it('should initialize with the first quarter selected', () => {
+      const { selectedQuarter } = spectator.component;
+      expect(selectedQuarter.name).toBe('Q1 2024');
+    });
+
+    it('should navigate to the next quarter when the next button is clicked', () => {
+      spectator.click('[data-test="next-quarter"]');
+      const { selectedQuarter } = spectator.component;
+      expect(selectedQuarter.name).toBe('Q2 2024');
+    });
+
+    it('should navigate to the previous quarter when the previous button is clicked', () => {
+      // Navigate to Q2 first
+      spectator.click('[data-test="next-quarter"]');
+      spectator.click('[data-test="prev-quarter"]');
+      const { selectedQuarter } = spectator.component;
+      expect(selectedQuarter.name).toBe('Q1 2024');
+    });
+
+    it('should disable the previous button when on the first quarter', () => {
+      const prevButton = spectator.query('[data-test="prev-quarter"]');
+      expect(prevButton).toBeDisabled();
+    });
+
+    it('should disable the next button when on the last quarter', () => {
+      // Navigate to the last quarter
+      spectator.component.selectedQuarterIndex = spectator.component.quarters.length - 1;
+      spectator.detectChanges();
+      const nextButton = spectator.query('[data-test="next-quarter"]');
+      expect(nextButton).toBeDisabled();
+    });
+  });
+
+  describe('Reports Display', () => {
+    it('should display reports for the selected quarter', () => {
+      spectator.component.selectedQuarterIndex = 2; // Select Q3 2024
+      spectator.detectChanges();
+
+      const reports = spectator.queryAll('[data-test="report"]');
+      expect(reports.length).toBe(2); // Two reports in Q3
+      expect(reports[0]).toHaveText('Report 1 for Q3');
+      expect(reports[1]).toHaveText('Report 2 for Q3');
+    });
+
+    it('should display a message if no reports are available for the selected quarter', () => {
+      spectator.component.selectedQuarterIndex = 0; // Select Q1 2024
+      spectator.component.reports = []; // Empty the reports
+      spectator.detectChanges();
+
+      const message = spectator.query('[data-test="no-reports"]');
+      expect(message).toHaveText('No reports available for this quarter.');
+    });
+  });
+});
+
+
+---
+
+Explications des tests
+
+1. Test d'initialisation :
+Vérifie que le composant est correctement créé et qu’il est initialisé avec le premier quarter.
+
+
+2. Tests de navigation :
+
+Vérifie que le quarter suivant est sélectionné en cliquant sur le bouton "Next".
+
+Vérifie que le quarter précédent est sélectionné en cliquant sur le bouton "Previous".
+
+Vérifie que les boutons "Previous" et "Next" sont désactivés lorsque le composant est sur le premier ou le dernier quarter.
+
+
+
+3. Tests d’affichage des rapports :
+
+Vérifie que seuls les rapports du quarter sélectionné sont affichés.
+
+Vérifie qu’un message "No reports available for this quarter" s’affiche si aucun rapport n’est disponible.
+
+
+
+
+
+---
+
+HTML à mettre à jour pour les tests
+
+Pour faciliter les sélections dans les tests, ajoutez des attributs data-test aux éléments clés de votre template HTML :
+
+<div class="quarter-navigation">
+  <button
+    (click)="prevQuarter()"
+    [disabled]="selectedQuarterIndex === 0"
+    data-test="prev-quarter"
+  >
+    &lt;
+  </button>
+  <span>{{ selectedQuarter.name }}</span>
+  <button
+    (click)="nextQuarter()"
+    [disabled]="selectedQuarterIndex === quarters.length - 1"
+    data-test="next-quarter"
+  >
+    &gt;
+  </button>
+</div>
+
+<div>
+  <h4>Reports for {{ selectedQuarter.name }}</h4>
+  <div *ngFor="let report of getReportsForSelectedQuarter()" data-test="report">
+    <p>{{ report.date | date: 'fullDate' }} - {{ report.report }}</p>
+  </div>
+
+  <div *ngIf="getReportsForSelectedQuarter().length === 0" data-test="no-reports">
+    <p>No reports available for this quarter.</p>
+  </div>
+</div>
+
+
+---
+
+Commande pour exécuter les tests
+
+Une fois les tests ajoutés, exécutez-les avec la commande suivante :
+
+ng test
+
+
+---
+
+Résultat attendu
+
+Tous les cas d'utilisation (navigation des quarters, gestion des rapports) sont couverts.
+
+Les tests passent avec succès si tout est bien implémenté.
+
+
