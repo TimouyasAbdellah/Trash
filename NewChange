@@ -1,0 +1,200 @@
+Oui, j'ai bien vu la capture d'écran. Pour inclure deux boutons de navigation pour changer de quarter (gauche et droite), voici une solution complète en Angular.
+
+Étapes principales :
+
+1. Créer une liste des quarters disponibles.
+
+
+2. Gérer le quarter sélectionné.
+
+
+3. Ajouter les boutons pour naviguer entre les quarters.
+
+
+4. Afficher les rapports en fonction du quarter sélectionné.
+
+
+
+
+---
+
+Exemple complet
+
+1. Composant TypeScript
+
+Voici le fichier TypeScript pour gérer la logique :
+
+import { Component, OnInit } from '@angular/core';
+
+@Component({
+  selector: 'app-bb-reports',
+  templateUrl: './bb-reports.component.html',
+  styleUrls: ['./bb-reports.component.css']
+})
+export class BbReportsComponent implements OnInit {
+  // Liste des quarters disponibles (vous pouvez la récupérer dynamiquement depuis le backend)
+  availableQuarters = ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024']; 
+
+  // Quarter actuellement sélectionné
+  selectedQuarterIndex = 0; // Index du quarter dans la liste
+
+  // Données de rapport (mock ou depuis une API)
+  reports = {
+    'Q1 2024': { 'Jan': ['Mon 01 Jan', 'Mon 08 Jan'], 'Feb': ['Mon 05 Feb'] },
+    'Q2 2024': { 'Apr': ['Mon 01 Apr', 'Mon 08 Apr'], 'May': ['Mon 06 May'] },
+    'Q3 2024': { 'Jul': ['Mon 01 Jul', 'Mon 08 Jul'], 'Aug': ['Mon 05 Aug'] },
+    'Q4 2024': { 'Oct': ['Mon 07 Oct', 'Mon 14 Oct'], 'Nov': ['Mon 04 Nov'] },
+  };
+
+  constructor() {}
+
+  ngOnInit(): void {}
+
+  // Récupérer le quarter actuel
+  get selectedQuarter(): string {
+    return this.availableQuarters[this.selectedQuarterIndex];
+  }
+
+  // Naviguer vers le quarter précédent
+  prevQuarter(): void {
+    if (this.selectedQuarterIndex > 0) {
+      this.selectedQuarterIndex--;
+    }
+  }
+
+  // Naviguer vers le quarter suivant
+  nextQuarter(): void {
+    if (this.selectedQuarterIndex < this.availableQuarters.length - 1) {
+      this.selectedQuarterIndex++;
+    }
+  }
+
+  // Récupérer les rapports du quarter sélectionné
+  getReportsForQuarter(): any {
+    return this.reports[this.selectedQuarter] || {};
+  }
+}
+
+
+---
+
+2. Template HTML
+
+Voici le fichier HTML qui affiche les boutons de navigation et les rapports regroupés par mois.
+
+<div class="bb-reports-container">
+  <!-- Navigation des quarters -->
+  <div class="quarter-navigation">
+    <button (click)="prevQuarter()" [disabled]="selectedQuarterIndex === 0">
+      &lt; <!-- Flèche gauche -->
+    </button>
+    <span>{{ selectedQuarter }}</span>
+    <button (click)="nextQuarter()" [disabled]="selectedQuarterIndex === availableQuarters.length - 1">
+      &gt; <!-- Flèche droite -->
+    </button>
+  </div>
+
+  <!-- Affichage des rapports -->
+  <div *ngFor="let month of getMonths(getReportsForQuarter())">
+    <h4>{{ month | monthToMMM }}</h4>
+    <ul>
+      <li *ngFor="let report of getReportsForQuarter()[month]">
+        {{ report }}
+      </li>
+    </ul>
+  </div>
+</div>
+
+
+---
+
+3. Style CSS (optionnel)
+
+Vous pouvez ajouter du style pour rendre les boutons de navigation et les rapports plus élégants.
+
+.bb-reports-container {
+  width: 300px;
+  margin: 20px auto;
+  text-align: center;
+}
+
+.quarter-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.quarter-navigation button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.quarter-navigation button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+h4 {
+  margin: 10px 0;
+  font-size: 16px;
+  text-align: left;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  margin: 5px 0;
+  text-align: left;
+}
+
+
+---
+
+4. Ajouter un Pipe pour les mois
+
+Si vous souhaitez afficher les noms des mois (comme expliqué dans les sections précédentes), vous pouvez ajouter le pipe suivant :
+
+import { Pipe, PipeTransform } from '@angular/core';
+
+@Pipe({
+  name: 'monthToMMM'
+})
+export class MonthToMMMPipe implements PipeTransform {
+  transform(month: string): string {
+    const monthNames = {
+      Jan: 'Jan', Feb: 'Feb', Mar: 'Mar',
+      Apr: 'Apr', May: 'May', Jun: 'Jun',
+      Jul: 'Jul', Aug: 'Aug', Sep: 'Sep',
+      Oct: 'Oct', Nov: 'Nov', Dec: 'Dec'
+    };
+    return monthNames[month] || month;
+  }
+}
+
+
+---
+
+Fonctionnement :
+
+1. Les boutons < et > permettent de naviguer entre les quarters.
+
+
+2. La liste des rapports s'actualise automatiquement en fonction du quarter sélectionné.
+
+
+3. Les rapports sont regroupés par mois, et chaque mois affiche les dates correspondantes.
+
+
+
+Résultat attendu :
+
+Votre interface aura deux boutons pour naviguer entre les quarters. Les rapports s'afficheront sous chaque mois, comme dans votre capture d'écran.
+
