@@ -1,0 +1,128 @@
+Pour appliquer ce comportement de fallback uniquement sur les environnements non-production, vous pouvez utiliser le mécanisme de profils Spring (@Profile) ou une configuration basée sur des propriétés.
+
+Voici comment procéder :
+
+
+---
+
+Étape 1 : Ajouter des profils d'environnement
+
+Assurez-vous que vos environnements utilisent des profils Spring (par exemple, dev, test, prod) définis dans le fichier application.yml ou application.properties :
+
+application.yml
+
+spring:
+  profiles:
+    active: dev # Changez cela selon l'environnement (prod, test, etc.)
+
+
+---
+
+Étape 2 : Service avec fallback pour les environnements non-prod
+
+Ajoutez une implémentation pour les environnements non-prod avec l'annotation @Profile.
+
+@Service
+@Profile({"dev", "test"}) // Active uniquement sur dev ou test
+public class ExchangeRateServiceWithFallback implements ExchangeRateService {
+    private final ExchangeRateApiService1 apiService1;
+    private final ExchangeRateApiService2 apiService2;
+
+    public ExchangeRateServiceWithFallback(ExchangeRateApiService1 apiService1, ExchangeRateApiService2 apiService2) {
+        this.apiService1 = apiService1;
+        this.apiService2 = apiService2;
+    }
+
+    @Override
+    public ExchangeRateResponse getExchangeRates() {
+        try {
+            return apiService1.getExchangeRates();
+        } catch (Exception e1) {
+            System.out.println("API 1 is down. Switching to API 2.");
+            try {
+                return apiService2.getExchangeRates();
+            } catch (Exception e2) {
+                throw new RuntimeException("Both APIs are unavailable.");
+            }
+        }
+    }
+}
+
+
+---
+
+Étape 3 : Service pour les environnements prod
+
+Ajoutez une implémentation spécifique pour la production qui n'implémente pas le fallback.
+
+@Service
+@Profile("prod") // Active uniquement sur prod
+public class ExchangeRateServiceProd implements ExchangeRateService {
+    private final ExchangeRateApiService1 apiService1;
+
+    public ExchangeRateServiceProd(ExchangeRateApiService1 apiService1) {
+        this.apiService1 = apiService1;
+    }
+
+    @Override
+    public ExchangeRateResponse getExchangeRates() {
+        return apiService1.getExchangeRates(); // Pas de fallback, on utilise uniquement API 1
+    }
+}
+
+
+---
+
+Étape 4 : Interface commune pour les services
+
+Créez une interface pour unifier les différentes implémentations de ExchangeRateService.
+
+public interface ExchangeRateService {
+    ExchangeRateResponse getExchangeRates();
+}
+
+Les deux classes (ExchangeRateServiceWithFallback et ExchangeRateServiceProd) implémentent cette interface.
+
+
+---
+
+Étape 5 : Ajuster le contrôleur
+
+Le contrôleur utilise automatiquement l'implémentation du service actif dans le profil actuel grâce à l'injection Spring.
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+public class ExchangeRateController {
+    private final ExchangeRateService exchangeRateService;
+
+    public ExchangeRateController(ExchangeRateService exchangeRateService) {
+        this.exchangeRateService = exchangeRateService;
+    }
+
+    @GetMapping
+    public ResponseEntity<ExchangeRateResponse> getExchangeRates() {
+        try {
+            ExchangeRateResponse response = exchangeRateService.getExchangeRates();
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(null);
+        }
+    }
+}
+
+
+---
+
+Étape 6 : Tester selon l'environnement
+
+Lancez l'application en modifiant le profil actif dans application.yml ou en passant le profil comme argument au démarrage :
+
+java -Dspring.profiles.active=prod -jar your-app.jar
+
+En prod, seul le service principal est utilisé (pas de fallback).
+
+En dev ou test, le comportement de fallback est activé.
+
+
+Cette approche garantit un comportement précis en fonction de l'environnement, tout en restant simple à gérer grâce à Spring Profiles.
+
