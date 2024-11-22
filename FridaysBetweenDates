@@ -1,0 +1,72 @@
+Voici un code Java qui génère toutes les dates correspondant aux vendredis entre le 1er janvier 2020 et le 30 novembre 2024 :
+
+import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FridaysBetweenDates {
+
+    public static void main(String[] args) {
+        LocalDate startDate = LocalDate.of(2020, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 11, 30);
+
+        List<LocalDate> fridays = getFridaysBetweenDates(startDate, endDate);
+
+        System.out.println("Fridays between " + startDate + " and " + endDate + ":");
+        for (LocalDate friday : fridays) {
+            System.out.println(friday);
+        }
+    }
+
+    public static List<LocalDate> getFridaysBetweenDates(LocalDate start, LocalDate end) {
+        List<LocalDate> fridays = new ArrayList<>();
+
+        // Start from the first Friday after or equal to the start date
+        LocalDate current = start;
+        while (current.getDayOfWeek() != DayOfWeek.FRIDAY) {
+            current = current.plusDays(1);
+        }
+
+        // Add each Friday until the end date
+        while (!current.isAfter(end)) {
+            fridays.add(current);
+            current = current.plusWeeks(1);
+        }
+
+        return fridays;
+    }
+}
+
+Explications :
+
+1. Début : On initialise startDate et endDate pour définir la plage.
+
+
+2. Recherche du premier vendredi : On avance au premier vendredi après ou égal à la date de début.
+
+
+3. Ajout des vendredis : On parcourt toutes les dates par incréments de 7 jours (une semaine) jusqu'à la date de fin.
+
+
+4. Résultat : Toutes les dates de vendredi sont stockées dans une liste et affichées.
+
+
+
+Pour exécuter :
+
+Copiez ce code dans un fichier .java.
+
+Compilez-le et exécutez-le.
+
+
+Exemple de sortie (partielle) :
+
+Fridays between 2020-01-01 and 2024-11-30:
+2020-01-03
+2020-01-10
+2020-01-17
+...
+2024-11-22
+2024-11-29
+
