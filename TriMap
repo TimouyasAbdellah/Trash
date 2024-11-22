@@ -1,0 +1,62 @@
+Voici une autre solution plus concise en utilisant les Streams en Java pour trier les éléments de la HashMap par trimestre de manière descendante :
+
+Code avec Stream :
+
+import java.util.*;
+import java.util.stream.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // Créer la HashMap avec les trimestres comme clés
+        HashMap<String, String> map = new HashMap<>();
+        map.put("Q1 2024", "Value 1");
+        map.put("Q2 2023", "Value 2");
+        map.put("Q3 2022", "Value 3");
+        map.put("Q4 2023", "Value 4");
+
+        // Trier avec les Streams et collecter dans une LinkedHashMap pour garder l'ordre
+        LinkedHashMap<String, String> sortedMap = map.entrySet()
+            .stream()
+            .sorted((entry1, entry2) -> {
+                String key1 = entry1.getKey();
+                String key2 = entry2.getKey();
+                int year1 = Integer.parseInt(key1.split(" ")[1]);
+                int quarter1 = Integer.parseInt(key1.substring(1, 2));
+                int year2 = Integer.parseInt(key2.split(" ")[1]);
+                int quarter2 = Integer.parseInt(key2.substring(1, 2));
+
+                // Comparer d'abord par année, puis par trimestre
+                if (year1 != year2) {
+                    return Integer.compare(year2, year1); // Tri décroissant par année
+                }
+                return Integer.compare(quarter2, quarter1); // Tri décroissant par trimestre
+            })
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (e1, e2) -> e1, // En cas de doublon (pas de gestion ici)
+                LinkedHashMap::new // Garder l'ordre du Stream
+            ));
+
+        // Afficher la carte triée
+        sortedMap.forEach((key, value) -> System.out.println(key + ": " + value));
+    }
+}
+
+Explication :
+
+1. Stream sur les entrées : On commence par créer un stream des entrées (entrySet()) de la HashMap.
+
+
+2. Tri : Utilisation de la méthode sorted() pour trier les entrées en fonction des clés sous le format "Qx yyyy". La logique de tri est la même que précédemment (d'abord par année, puis par trimestre).
+
+
+3. Collecte dans LinkedHashMap : Après le tri, on utilise Collectors.toMap() pour collecter les résultats dans un LinkedHashMap afin de préserver l'ordre du stream.
+
+
+4. Affichage : Enfin, la carte triée est affichée.
+
+
+
+Cette méthode est plus concise grâce à l'utilisation des Streams et reste efficace pour trier les trimestres de manière personnalisée.
+
