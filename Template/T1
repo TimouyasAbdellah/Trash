@@ -1,0 +1,2 @@
+A metrics verification project runs nightly to validate the accuracy and consistency of collected data. Each night, the system processes metrics from various sources, checks them against predefined thresholds or rules, and identifies any discrepancies or anomalies. This scheduled approach ensures that issues are detected and reported promptly, maintaining the reliability of the data used for performance analysis or business decisions.
+
