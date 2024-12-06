@@ -1,0 +1,109 @@
+Voici un script complet en PostgreSQL pour migrer toutes les colonnes de type TIMESTAMP WITHOUT TIME ZONE vers UTC dans plusieurs schémas. Ce script effectue les étapes suivantes :
+
+1. Identifie toutes les colonnes concernées.
+
+
+2. Applique la conversion en UTC pour chaque colonne.
+
+
+3. Vérifie automatiquement que la conversion est correcte.
+
+
+
+Script PL/pgSQL :
+
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    -- Boucle sur toutes les colonnes de type TIMESTAMP WITHOUT TIME ZONE
+    FOR rec IN
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE data_type = 'timestamp without time zone'
+          AND table_schema NOT IN ('pg_catalog', 'information_schema') -- Exclure les schémas système
+    LOOP
+        -- Afficher la table et la colonne en cours pour suivi
+        RAISE NOTICE 'Processing %.% -> %', rec.table_schema, rec.table_name, rec.column_name;
+
+        -- Générer et exécuter la requête de mise à jour
+        EXECUTE format(
+            'UPDATE %I.%I SET %I = %I AT TIME ZONE ''Europe/Paris'' AT TIME ZONE ''UTC'';',
+            rec.table_schema, rec.table_name, rec.column_name, rec.column_name
+        );
+
+        -- Vérification des résultats pour chaque colonne
+        RAISE NOTICE 'Updated column %.% in table %.% to UTC',
+            rec.column_name, rec.table_schema, rec.table_name;
+    END LOOP;
+
+    -- Indiquer la fin de la migration
+    RAISE NOTICE 'Migration to UTC complete.';
+END $$;
+
+
+---
+
+Explications des étapes clés
+
+1. Sélection des colonnes :
+
+La requête dans FOR rec IN sélectionne toutes les colonnes de type TIMESTAMP WITHOUT TIME ZONE dans vos schémas non système.
+
+
+
+2. Conversion de chaque colonne :
+
+La commande UPDATE utilise :
+
+column_name AT TIME ZONE 'Europe/Paris' AT TIME ZONE 'UTC'
+
+Cela interprète les données existantes comme étant en fuseau horaire Europe/Paris et les convertit en UTC.
+
+
+
+3. Suivi avec RAISE NOTICE :
+
+Pour afficher les informations sur les colonnes et tables en cours de traitement dans vos logs PostgreSQL.
+
+
+
+4. Format dynamique via EXECUTE format() :
+
+Permet de générer dynamiquement les commandes SQL pour chaque colonne et table, en respectant les noms des schémas.
+
+
+
+
+
+---
+
+Prérequis
+
+Sauvegarde : Effectuez une sauvegarde de votre base avant d'exécuter ce script.
+
+Test : Exécutez d'abord ce script sur un environnement de staging pour valider qu'il fonctionne comme attendu.
+
+
+
+---
+
+Vérification après la migration
+
+Vous pouvez vérifier que toutes les données sont bien en UTC avec cette requête :
+
+SELECT table_schema, table_name, column_name,
+       MIN(column_name) AS min_date,
+       MAX(column_name) AS max_date
+FROM information_schema.columns
+JOIN information_schema.tables
+ON columns.table_name = tables.table_name
+WHERE data_type = 'timestamp without time zone'
+  AND table_schema NOT IN ('pg_catalog', 'information_schema')
+GROUP BY table_schema, table_name, column_name;
+
+
+---
+
+Souhaitez-vous des ajustements pour une configuration spécifique (par exemple, exclure certains schémas ou tables) ?
+
