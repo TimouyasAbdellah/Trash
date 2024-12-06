@@ -1,0 +1,76 @@
+Pour migrer toutes les données des tables d'un ou plusieurs schémas PostgreSQL d'un fuseau horaire spécifique (comme Europe/Paris) vers UTC, voici une approche que je recommande :
+
+1. Vérifiez le type de vos colonnes date/heure
+
+PostgreSQL propose deux types pour stocker des dates/heures :
+
+TIMESTAMP WITHOUT TIME ZONE : n'inclut pas d'information de fuseau horaire.
+
+TIMESTAMP WITH TIME ZONE : inclut l'information de fuseau horaire et est converti automatiquement en UTC en interne.
+
+
+
+Pour cette migration, si vos colonnes sont de type TIMESTAMP WITHOUT TIME ZONE, il faudra explicitement indiquer le fuseau horaire d'origine lors de la conversion.
+
+2. Identifier les tables et les colonnes concernées
+
+Exécutez une requête pour lister toutes les colonnes de type date/heure dans vos schémas :
+
+SELECT table_schema, table_name, column_name, data_type
+FROM information_schema.columns
+WHERE data_type IN ('timestamp without time zone', 'timestamp with time zone')
+  AND table_schema NOT IN ('pg_catalog', 'information_schema');
+
+3. Préparer la conversion
+
+Pour convertir des dates/heures en UTC :
+
+Si la colonne est TIMESTAMP WITHOUT TIME ZONE, vous devez indiquer explicitement que les valeurs sont en Europe/Paris. Exemple :
+
+SELECT column_name AT TIME ZONE 'Europe/Paris' AT TIME ZONE 'UTC' AS converted_column
+FROM table_name;
+
+Si la colonne est TIMESTAMP WITH TIME ZONE, PostgreSQL gère déjà les conversions automatiquement.
+
+
+4. Appliquer les modifications
+
+Voici une requête générique pour mettre à jour une colonne :
+
+UPDATE schema_name.table_name
+SET column_name = column_name AT TIME ZONE 'Europe/Paris' AT TIME ZONE 'UTC';
+
+5. Automatiser pour toutes les tables/colonnes
+
+Vous pouvez automatiser la mise à jour via une procédure PL/pgSQL :
+
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE data_type = 'timestamp without time zone'
+          AND table_schema NOT IN ('pg_catalog', 'information_schema')
+    LOOP
+        EXECUTE format(
+            'UPDATE %I.%I SET %I = %I AT TIME ZONE ''Europe/Paris'' AT TIME ZONE ''UTC'';',
+            rec.table_schema, rec.table_name, rec.column_name, rec.column_name
+        );
+    END LOOP;
+END $$;
+
+6. Tester sur un environnement de staging
+
+Avant de toucher à vos données en production, testez cette migration sur une copie de votre base pour valider que les conversions se passent correctement.
+
+7. Points d'attention
+
+Assurez-vous de sauvegarder votre base avant toute modification importante.
+
+Les applications qui utilisent la base doivent gérer l'UTC en interne ou convertir les dates selon leur propre fuseau horaire.
+
+
+Souhaitez-vous des détails sur un point spécifique ?
+
