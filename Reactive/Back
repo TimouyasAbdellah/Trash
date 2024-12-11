@@ -1,0 +1,261 @@
+Voici un exemple de microservice Spring Boot en mode réactif (avec Spring WebFlux) pour gérer les alertes, y compris les opérations de lecture et d'écriture. Nous utiliserons PostgreSQL comme base de données.
+
+1. Configuration de la base de données PostgreSQL
+
+Créer une base de données PostgreSQL nommée alertes_db et exécuter le script SQL suivant pour créer la table :
+
+CREATE TABLE alertes (
+    id SERIAL PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    description TEXT,
+    niveau_alerte VARCHAR(50),
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---
+
+2. Structure du projet
+
+Le projet contiendra les packages suivants :
+
+com.example.alertes : Package principal.
+
+com.example.alertes.model : Contiendra les entités.
+
+com.example.alertes.repository : Contiendra le repository réactif.
+
+com.example.alertes.service : Contiendra la logique métier.
+
+com.example.alertes.controller : Contiendra les endpoints REST.
+
+
+
+---
+
+3. Code du Microservice
+
+a) Fichier application.properties
+
+Configurer PostgreSQL dans le fichier src/main/resources/application.properties :
+
+spring.application.name=alertes-service
+server.port=8080
+
+spring.r2dbc.url=r2dbc:postgresql://localhost:5432/alertes_db
+spring.r2dbc.username=postgres
+spring.r2dbc.password=mot_de_passe
+
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+logging.level.org.springframework.r2dbc=DEBUG
+
+
+---
+
+b) Classe principale
+
+package com.example.alertes;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AlertesApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(AlertesApplication.class, args);
+    }
+}
+
+
+---
+
+c) Entité Alerte
+
+package com.example.alertes.model;
+
+import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.LocalDateTime;
+
+@Data
+@Table("alertes")
+public class Alerte {
+    @Id
+    private Long id;
+    private String titre;
+    private String description;
+    private String niveauAlerte;
+    private LocalDateTime dateCreation;
+}
+
+
+---
+
+d) Repository
+
+package com.example.alertes.repository;
+
+import com.example.alertes.model.Alerte;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AlerteRepository extends ReactiveCrudRepository<Alerte, Long> {
+}
+
+
+---
+
+e) Service
+
+package com.example.alertes.service;
+
+import com.example.alertes.model.Alerte;
+import com.example.alertes.repository.AlerteRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Service
+@RequiredArgsConstructor
+public class AlerteService {
+
+    private final AlerteRepository alerteRepository;
+
+    public Flux<Alerte> getAllAlertes() {
+        return alerteRepository.findAll();
+    }
+
+    public Mono<Alerte> getAlerteById(Long id) {
+        return alerteRepository.findById(id);
+    }
+
+    public Mono<Alerte> saveAlerte(Alerte alerte) {
+        return alerteRepository.save(alerte);
+    }
+
+    public Mono<Void> deleteAlerte(Long id) {
+        return alerteRepository.deleteById(id);
+    }
+}
+
+
+---
+
+f) Contrôleur
+
+package com.example.alertes.controller;
+
+import com.example.alertes.model.Alerte;
+import com.example.alertes.service.AlerteService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@RestController
+@RequestMapping("/api/alertes")
+@RequiredArgsConstructor
+public class AlerteController {
+
+    private final AlerteService alerteService;
+
+    @GetMapping
+    public Flux<Alerte> getAllAlertes() {
+        return alerteService.getAllAlertes();
+    }
+
+    @GetMapping("/{id}")
+    public Mono<Alerte> getAlerteById(@PathVariable Long id) {
+        return alerteService.getAlerteById(id);
+    }
+
+    @PostMapping
+    public Mono<Alerte> createAlerte(@RequestBody Alerte alerte) {
+        return alerteService.saveAlerte(alerte);
+    }
+
+    @DeleteMapping("/{id}")
+    public Mono<Void> deleteAlerte(@PathVariable Long id) {
+        return alerteService.deleteAlerte(id);
+    }
+}
+
+
+---
+
+4. Ajouter les dépendances Maven
+
+Voici un extrait de pom.xml avec les dépendances nécessaires :
+
+<dependencies>
+    <!-- Spring Boot Reactive Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+
+    <!-- Spring Data R2DBC -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+    </dependency>
+    
+    <!-- PostgreSQL R2DBC Driver -->
+    <dependency>
+        <groupId>io.r2dbc</groupId>
+        <artifactId>r2dbc-postgresql</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <scope>provided</scope>
+    </dependency>
+
+    <!-- Spring Boot DevTools -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+</dependencies>
+
+
+---
+
+5. Tester l'API
+
+Utilisez un outil comme Postman pour tester les endpoints :
+
+GET /api/alertes : Récupérer toutes les alertes.
+
+GET /api/alertes/{id} : Récupérer une alerte par ID.
+
+POST /api/alertes : Ajouter une nouvelle alerte (envoyer un JSON dans le body).
+
+DELETE /api/alertes/{id} : Supprimer une alerte par ID.
+
+
+
+---
+
+6. Démarrage
+
+1. Lancer PostgreSQL et vérifier que la base de données alertes_db est prête.
+
+
+2. Démarrer l'application avec mvn spring-boot:run.
+
+
+3. Les endpoints seront disponibles sur http://localhost:8080/api/alertes.
+
+
+
+Ce microservice est prêt pour gérer les alertes de manière réactive avec Spring Boot et PostgreSQL !
+
