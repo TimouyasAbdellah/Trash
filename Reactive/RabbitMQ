@@ -1,0 +1,311 @@
+Pour utiliser RabbitMQ avec un microservice Spring Boot, nous allons créer un microservice qui envoie et consomme des messages via RabbitMQ tout en gérant les alertes. Voici comment faire :
+
+
+---
+
+1. Architecture
+
+Émetteur : Le microservice Spring Boot envoie des alertes à RabbitMQ via un producteur.
+
+Consommateur : Un composant ou service Spring Boot écoute les messages d'une file d'attente RabbitMQ et les traite (les stocke dans PostgreSQL, par exemple).
+
+
+
+---
+
+2. Configurer RabbitMQ
+
+1. Installer RabbitMQ :
+
+Suivez les instructions sur le site officiel : Installation RabbitMQ.
+
+
+
+2. Lancer RabbitMQ :
+
+rabbitmq-server
+
+
+3. Accéder à l’interface de gestion de RabbitMQ (optionnel) :
+
+URL : http://localhost:15672
+
+Identifiants par défaut :
+
+Utilisateur : guest
+
+Mot de passe : guest
+
+
+
+
+
+
+---
+
+3. Configurer le Projet Spring Boot
+
+a) Dépendances Maven
+
+Ajoutez les dépendances nécessaires dans le fichier pom.xml :
+
+<dependencies>
+    <!-- Spring Boot Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- Spring AMQP (RabbitMQ) -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+
+    <!-- Spring Data JPA -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- PostgreSQL Driver -->
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+
+
+---
+
+b) Configuration RabbitMQ
+
+Ajoutez les configurations RabbitMQ dans le fichier application.properties :
+
+spring.application.name=alertes-rabbitmq-service
+server.port=8080
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/alertes_db
+spring.datasource.username=postgres
+spring.datasource.password=mot_de_passe
+
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
+
+
+---
+
+c) Classe de Configuration RabbitMQ
+
+Créez un fichier RabbitMQConfig.java dans le package config :
+
+package com.example.alertes.config;
+
+import org.springframework.amqp.core.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class RabbitMQConfig {
+
+    public static final String QUEUE = "alertes_queue";
+    public static final String EXCHANGE = "alertes_exchange";
+    public static final String ROUTING_KEY = "alertes_routing_key";
+
+    @Bean
+    public Queue queue() {
+        return new Queue(QUEUE);
+    }
+
+    @Bean
+    public TopicExchange exchange() {
+        return new TopicExchange(EXCHANGE);
+    }
+
+    @Bean
+    public Binding binding(Queue queue, TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY);
+    }
+}
+
+
+---
+
+d) Entité Alerte
+
+Définissez une entité Alerte pour stocker les alertes dans PostgreSQL.
+
+package com.example.alertes.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Data
+public class Alerte {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String titre;
+    private String description;
+    private String niveauAlerte;
+    private LocalDateTime dateCreation = LocalDateTime.now();
+}
+
+
+---
+
+e) Producteur RabbitMQ
+
+Ajoutez une classe pour envoyer des messages à RabbitMQ.
+
+package com.example.alertes.producer;
+
+import com.example.alertes.config.RabbitMQConfig;
+import com.example.alertes.model.Alerte;
+import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AlerteProducer {
+
+    private final RabbitTemplate rabbitTemplate;
+
+    public void sendAlerte(Alerte alerte) {
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.ROUTING_KEY, alerte);
+    }
+}
+
+
+---
+
+f) Consommateur RabbitMQ
+
+Ajoutez une classe pour consommer les messages de RabbitMQ et les enregistrer dans PostgreSQL.
+
+package com.example.alertes.consumer;
+
+import com.example.alertes.model.Alerte;
+import com.example.alertes.repository.AlerteRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AlerteConsumer {
+
+    private final AlerteRepository alerteRepository;
+
+    @RabbitListener(queues = RabbitMQConfig.QUEUE)
+    public void consumeAlerte(Alerte alerte) {
+        System.out.println("Consuming alerte: " + alerte);
+        alerteRepository.save(alerte);
+    }
+}
+
+
+---
+
+g) Repository
+
+Ajoutez une interface de repository pour la gestion des alertes.
+
+package com.example.alertes.repository;
+
+import com.example.alertes.model.Alerte;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AlerteRepository extends JpaRepository<Alerte, Long> {
+}
+
+
+---
+
+h) Controller
+
+Ajoutez un contrôleur pour exposer une API REST permettant d’envoyer des alertes.
+
+package com.example.alertes.controller;
+
+import com.example.alertes.model.Alerte;
+import com.example.alertes.producer.AlerteProducer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/alertes")
+@RequiredArgsConstructor
+public class AlerteController {
+
+    private final AlerteProducer alerteProducer;
+
+    @PostMapping
+    public String createAlerte(@RequestBody Alerte alerte) {
+        alerteProducer.sendAlerte(alerte);
+        return "Alerte envoyée avec succès à RabbitMQ";
+    }
+}
+
+
+---
+
+4. Tester l'Application
+
+1. Démarrer RabbitMQ.
+
+
+2. Démarrer PostgreSQL et créer la table alertes :
+
+CREATE TABLE alertes (
+    id SERIAL PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    description TEXT,
+    niveau_alerte VARCHAR(50),
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+3. Lancer le microservice Spring Boot :
+
+mvn spring-boot:run
+
+
+4. Tester l’envoi d’une alerte avec un outil comme Postman :
+
+URL : POST http://localhost:8080/api/alertes
+
+Body (JSON) :
+
+{
+    "titre": "Alerte Test",
+    "description": "Ceci est une alerte test.",
+    "niveauAlerte": "Haute"
+}
+
+
+
+5. Vérifiez que l'alerte est stockée dans PostgreSQL après avoir été consommée depuis RabbitMQ.
+
+
+
+
+---
+
+Ce système utilise RabbitMQ pour transmettre les messages d'alerte et un consommateur Spring Boot pour les traiter et les sauvegarder dans PostgreSQL. Vous pouvez étendre cette architecture pour intégrer d'autres consommateurs ou enrichir les fonctionnalités.
+
