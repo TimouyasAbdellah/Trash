@@ -1,0 +1,271 @@
+Voici un exemple d'application Angular qui consomme les APIs de votre microservice en mode asynchrone.
+
+
+---
+
+1. Installation et Configuration d’Angular
+
+1. Installer Angular CLI si ce n’est pas déjà fait :
+
+npm install -g @angular/cli
+
+
+2. Créer une nouvelle application Angular :
+
+ng new alertes-app
+cd alertes-app
+
+
+3. Ajouter Bootstrap (optionnel) pour un design rapide :
+
+npm install bootstrap
+
+Modifier angular.json pour inclure Bootstrap :
+
+"styles": [
+  "src/styles.css",
+  "node_modules/bootstrap/dist/css/bootstrap.min.css"
+]
+
+
+
+
+---
+
+2. Créer les Composants et Services
+
+a) Créer le Service
+
+Créer un service Angular pour gérer les appels API :
+
+ng generate service services/alerte
+
+Modifier le fichier src/app/services/alerte.service.ts :
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface Alerte {
+  id?: number;
+  titre: string;
+  description: string;
+  niveauAlerte: string;
+  dateCreation?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AlerteService {
+  private baseUrl = 'http://localhost:8080/api/alertes';
+
+  constructor(private http: HttpClient) {}
+
+  // Récupérer toutes les alertes
+  getAlertes(): Observable<Alerte[]> {
+    return this.http.get<Alerte[]>(this.baseUrl);
+  }
+
+  // Récupérer une alerte par ID
+  getAlerteById(id: number): Observable<Alerte> {
+    return this.http.get<Alerte>(`${this.baseUrl}/${id}`);
+  }
+
+  // Créer une alerte
+  createAlerte(alerte: Alerte): Observable<Alerte> {
+    return this.http.post<Alerte>(this.baseUrl, alerte);
+  }
+
+  // Supprimer une alerte
+  deleteAlerte(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+}
+
+
+---
+
+b) Créer les Composants
+
+1. Créer un composant pour lister les alertes :
+
+ng generate component components/alertes-list
+
+
+2. Créer un composant pour ajouter ou éditer une alerte :
+
+ng generate component components/alertes-form
+
+
+
+
+---
+
+3. Créer les Interfaces Utilisateurs
+
+a) Liste des Alertes
+
+Modifier src/app/components/alertes-list/alertes-list.component.ts :
+
+import { Component, OnInit } from '@angular/core';
+import { Alerte, AlerteService } from '../../services/alerte.service';
+
+@Component({
+  selector: 'app-alertes-list',
+  templateUrl: './alertes-list.component.html',
+  styleUrls: ['./alertes-list.component.css']
+})
+export class AlertesListComponent implements OnInit {
+  alertes: Alerte[] = [];
+
+  constructor(private alerteService: AlerteService) {}
+
+  ngOnInit(): void {
+    this.fetchAlertes();
+  }
+
+  fetchAlertes(): void {
+    this.alerteService.getAlertes().subscribe((data) => {
+      this.alertes = data;
+    });
+  }
+
+  deleteAlerte(id: number): void {
+    if (confirm('Voulez-vous vraiment supprimer cette alerte ?')) {
+      this.alerteService.deleteAlerte(id).subscribe(() => {
+        this.alertes = this.alertes.filter(alerte => alerte.id !== id);
+      });
+    }
+  }
+}
+
+Modifier src/app/components/alertes-list/alertes-list.component.html :
+
+<div class="container mt-4">
+  <h2>Liste des Alertes</h2>
+  <a routerLink="/add" class="btn btn-primary mb-3">Ajouter une Alerte</a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Titre</th>
+        <th>Description</th>
+        <th>Niveau</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let alerte of alertes">
+        <td>{{ alerte.id }}</td>
+        <td>{{ alerte.titre }}</td>
+        <td>{{ alerte.description }}</td>
+        <td>{{ alerte.niveauAlerte }}</td>
+        <td>{{ alerte.dateCreation | date:'short' }}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" (click)="deleteAlerte(alerte.id!)">Supprimer</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+---
+
+b) Formulaire d’Alerte
+
+Modifier src/app/components/alertes-form/alertes-form.component.ts :
+
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { Alerte, AlerteService } from '../../services/alerte.service';
+
+@Component({
+  selector: 'app-alertes-form',
+  templateUrl: './alertes-form.component.html',
+  styleUrls: ['./alertes-form.component.css']
+})
+export class AlertesFormComponent {
+  alerte: Alerte = {
+    titre: '',
+    description: '',
+    niveauAlerte: ''
+  };
+
+  constructor(private alerteService: AlerteService, private router: Router) {}
+
+  saveAlerte(): void {
+    this.alerteService.createAlerte(this.alerte).subscribe(() => {
+      this.router.navigate(['/']);
+    });
+  }
+}
+
+Modifier src/app/components/alertes-form/alertes-form.component.html :
+
+<div class="container mt-4">
+  <h2>Ajouter une Alerte</h2>
+  <form (ngSubmit)="saveAlerte()">
+    <div class="form-group">
+      <label for="titre">Titre</label>
+      <input type="text" class="form-control" id="titre" [(ngModel)]="alerte.titre" name="titre" required />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" id="description" [(ngModel)]="alerte.description" name="description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="niveauAlerte">Niveau d'Alerte</label>
+      <input type="text" class="form-control" id="niveauAlerte" [(ngModel)]="alerte.niveauAlerte" name="niveauAlerte" required />
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Enregistrer</button>
+  </form>
+</div>
+
+
+---
+
+4. Configurer les Routes
+
+Modifier src/app/app-routing.module.ts :
+
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { AlertesListComponent } from './components/alertes-list/alertes-list.component';
+import { AlertesFormComponent } from './components/alertes-form/alertes-form.component';
+
+const routes: Routes = [
+  { path: '', component: AlertesListComponent },
+  { path: 'add', component: AlertesFormComponent },
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule {}
+
+
+---
+
+5. Tester l'Application
+
+1. Démarrer le microservice Spring Boot.
+
+
+2. Lancer l'application Angular :
+
+ng serve
+
+
+3. Ouvrir dans un navigateur : http://localhost:4200.
+
+
+
+
+---
+
+Vous avez maintenant une application Angular qui consomme les APIs de votre microservice en mode asynchrone !
+
