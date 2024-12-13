@@ -1,0 +1,156 @@
+L'utilisation de Spring Boot R2DBC (Reactive Relational Database Connectivity) et Liquibase pour la gestion des schémas de base de données est une combinaison puissante, bien que nécessitant quelques ajustements spécifiques. Voici un guide pour les intégrer :
+
+
+---
+
+1. Configurer Spring Boot avec R2DBC
+
+Spring Boot R2DBC est conçu pour des applications réactives utilisant des bases de données relationnelles.
+
+Ajout des dépendances Maven/Gradle :
+
+Pour Maven :
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.r2dbc</groupId>
+    <artifactId>r2dbc-postgresql</artifactId> <!-- ou votre pilote R2DBC -->
+</dependency>
+
+Pour Gradle :
+
+implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+implementation("io.r2dbc:r2dbc-postgresql") // Adapter pour PostgreSQL, changez selon votre SGBD
+
+
+---
+
+2. Configurer Liquibase pour R2DBC
+
+Liquibase fonctionne généralement avec des connexions JDBC. Or, avec R2DBC, il faut initialiser Liquibase séparément avant que l'application ne démarre. Voici les étapes principales :
+
+Ajouter les dépendances de Liquibase :
+
+Pour Maven :
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.liquibase</groupId>
+    <artifactId>liquibase-core</artifactId>
+</dependency>
+
+Pour Gradle :
+
+implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+implementation("org.liquibase:liquibase-core")
+
+Désactiver l'initialisation automatique des schémas :
+
+Dans votre application.yml ou application.properties :
+
+spring:
+  liquibase:
+    enabled: true
+  r2dbc:
+    enabled: true
+  sql:
+    init:
+      mode: never
+
+
+---
+
+3. Créer le fichier changelog de Liquibase
+
+Créez un fichier db/changelog/db.changelog-master.yaml pour définir les migrations :
+
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: user
+      changes:
+        - createTable:
+            tableName: my_table
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+
+---
+
+4. Configurer l'ordre d'exécution
+
+Liquibase devra s'exécuter avant que votre application réactive ne démarre. Vous pouvez le configurer ainsi dans une classe de configuration Spring :
+
+Exemple de Bean personnalisé pour Liquibase :
+
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
+import liquibase.integration.spring.SpringLiquibase;
+
+@Configuration
+public class LiquibaseConfig {
+
+    @Bean
+    public SpringLiquibase liquibase(LiquibaseProperties properties, ResourceLoader resourceLoader) {
+        SpringLiquibase liquibase = new SpringLiquibase();
+        liquibase.setChangeLog(properties.getChangeLog());
+        liquibase.setDataSource(dataSource(properties));
+        return liquibase;
+    }
+
+    private DataSource dataSource(LiquibaseProperties properties) {
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl(properties.getUrl());
+        dataSource.setUsername(properties.getUser());
+        dataSource.setPassword(properties.getPassword());
+        return dataSource;
+    }
+}
+
+
+---
+
+5. Points importants :
+
+1. Séparation entre R2DBC et JDBC : R2DBC ne peut pas utiliser Liquibase directement. On configure Liquibase avec JDBC (via une source de données HikariCP) et R2DBC pour les opérations réactives.
+
+
+2. Propriétés pour Liquibase :
+
+spring.liquibase.url=jdbc:postgresql://localhost:5432/mydb
+
+spring.liquibase.user=username
+
+spring.liquibase.password=password
+
+spring.liquibase.change-log=classpath:db/changelog/db.changelog-master.yaml
+
+
+
+3. Ordre d'exécution : Assurez-vous que Liquibase a terminé avant que l'application R2DBC ne tente d'accéder à la base.
+
+
+
+
+---
+
+Avec cette configuration, vous bénéficiez des avantages réactifs de R2DBC tout en utilisant Liquibase pour maintenir la cohérence des schémas de base de données.
+
