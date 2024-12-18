@@ -1,0 +1,78 @@
+Server-Sent Events (SSE): Overview
+
+Server-Sent Events (SSE) is a standard technology used to push updates from a server to a client in real time using a single, persistent HTTP connection. It is unidirectional, meaning the server can send updates to the client, but not vice versa.
+
+
+---
+
+How SSE Works
+
+1. The client (e.g., browser) opens a connection to the server via an endpoint.
+
+
+2. The server streams events to the client in text/event-stream format.
+
+
+3. The client listens for messages and processes them.
+
+
+
+
+---
+
+Advantages of SSE
+
+1. Simple to Implement: Native browser support through the EventSource API (no external libraries required).
+
+
+2. Lightweight Protocol: Lower overhead compared to WebSockets for unidirectional data transfer.
+
+
+3. Automatic Reconnection: Built-in support for reconnection if the connection is interrupted.
+
+
+4. Efficient for Real-Time Updates: Ideal for applications like notifications, live scores, or stock price updates.
+
+
+5. Works over HTTP/HTTPS: Easily integrates with existing HTTP infrastructure.
+
+
+
+
+---
+
+Disadvantages of SSE
+
+1. Unidirectional: Communication is only from the server to the client. For bidirectional communication, WebSockets are better.
+
+
+2. Limited Browser Support: While most modern browsers support SSE, older browsers may not.
+
+
+3. Scaling Challenges: Maintaining many long-lived connections can be resource-intensive for the server.
+
+
+4. No Binary Data: SSE only supports text-based messages (no direct binary transmission).
+
+
+5. Relies on HTTP/1.1: SSE does not fully utilize the multiplexing benefits of HTTP/2.
+
+
+
+
+---
+
+Best Use Cases
+
+Live notifications (e.g., social media updates).
+
+Monitoring dashboards (e.g., server or system logs).
+
+Real-time data feeds (e.g., stock prices, news updates).
+
+
+
+---
+
+SSE is an excellent choice for scenarios requiring lightweight, real-time, server-to-client updates without the need for bidirectional communication.
+
