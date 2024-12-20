@@ -1,0 +1,177 @@
+Pour appliquer la gestion automatique de createdDate et updatedDate à toutes vos entités dans une application Spring WebFlux ou Spring Boot, vous pouvez utiliser les Auditing Entities de Spring Data en combinant une configuration centralisée avec des annotations. Voici la démarche complète :
+
+
+---
+
+1. Créer une classe abstraite Auditable
+
+Créez une classe de base abstraite que toutes vos entités étendront. Cette classe contiendra les champs createdDate et updatedDate avec les annotations d'audit appropriées.
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.relational.core.mapping.MappedSuperclass;
+
+import java.time.LocalDateTime;
+
+@MappedSuperclass
+public abstract class Auditable {
+
+    @CreatedDate
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime updatedDate;
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+}
+
+
+---
+
+2. Étendre la classe Auditable dans les entités
+
+Faites en sorte que vos entités héritent de cette classe Auditable pour bénéficier automatiquement des champs createdDate et updatedDate.
+
+Exemple d'une entité
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("my_entity")
+public class MyEntity extends Auditable {
+
+    @Id
+    private Long id;
+    private String name;
+
+    // Getters et setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+
+---
+
+3. Activer l'audit avec Spring
+
+Activez l'audit dans votre configuration Spring en utilisant l'annotation @EnableR2dbcAuditing (ou @EnableJpaAuditing si vous utilisez JPA).
+
+Configuration Spring
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.r2dbc.config.EnableR2dbcAuditing;
+
+@Configuration
+@EnableR2dbcAuditing
+public class AuditConfig {
+    // La configuration de l'audit
+}
+
+
+---
+
+4. Fournir un DateTimeProvider global pour gérer les dates
+
+Spring utilise un DateTimeProvider pour les champs annotés avec @CreatedDate et @LastModifiedDate. Vous pouvez en fournir un personnalisé qui utilise votre interface.
+
+Implémentation personnalisée
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.auditing.DateTimeProvider;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+@Configuration
+public class CustomDateTimeProviderConfig {
+
+    private final DateTimeProvider dateTimeProvider;
+
+    public CustomDateTimeProviderConfig(DateTimeProvider dateTimeProvider) {
+        this.dateTimeProvider = dateTimeProvider;
+    }
+
+    @Bean
+    public DateTimeProvider dateTimeProvider() {
+        return () -> Optional.of(LocalDateTime.now()); // Ou utilisez une version personnalisée
+    }
+}
+
+Si vous avez besoin d'un contrôle pour les tests, injectez un DateTimeProvider basé sur votre interface DateTimeProvider.
+
+
+---
+
+5. Contrôle dans les tests
+
+Pendant les tests, vous pouvez remplacer le comportement global de DateTimeProvider pour contrôler les valeurs retournées.
+
+Exemple de test avec un DateTimeProvider fixe
+
+import org.junit.jupiter.api.Test;
+import org.springframework.data.auditing.DateTimeProvider;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class AuditableTest {
+
+    @Test
+    void testAuditFields() {
+        // Configurer une date fixe
+        LocalDateTime fixedDate = LocalDateTime.of(2024, 12, 25, 12, 0, 0);
+        DateTimeProvider fixedProvider = () -> Optional.of(fixedDate);
+
+        // Simuler l'entité
+        MyEntity entity = new MyEntity();
+        entity.setCreatedDate(fixedDate);
+        entity.setUpdatedDate(fixedDate);
+
+        // Vérifier les champs
+        assertEquals(fixedDate, entity.getCreatedDate());
+        assertEquals(fixedDate, entity.getUpdatedDate());
+    }
+}
+
+
+---
+
+6. Résultat : application à toutes les entités
+
+Centralisation : Les champs createdDate et updatedDate sont gérés automatiquement via la classe abstraite Auditable.
+
+Reproductibilité des tests : Vous pouvez contrôler le comportement des dates en utilisant un DateTimeProvider simulé.
+
+Flexibilité : Toutes les entités qui héritent d’Auditable bénéficient automatiquement de ces champs sans
+
+
