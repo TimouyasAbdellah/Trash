@@ -1,0 +1,183 @@
+Avec Spring WebFlux et Spring Data R2DBC, la gestion des dates auditées (createdDate et updatedDate) nécessite une approche différente, car les annotations classiques de Spring Data comme @CreatedDate et @LastModifiedDate ne sont pas nativement prises en charge dans ce contexte. Voici une méthode pour le mettre en œuvre :
+
+
+---
+
+1. Étendre une classe abstraite Auditable
+
+Commencez par créer une classe abstraite pour centraliser les champs d'audit.
+
+import java.time.LocalDateTime;
+
+public abstract class Auditable {
+
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+}
+
+
+---
+
+2. Étendre la classe Auditable dans vos entités
+
+Toutes vos entités doivent hériter de cette classe pour bénéficier automatiquement des champs d'audit.
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("my_entity")
+public class MyEntity extends Auditable {
+
+    @Id
+    private Long id;
+    private String name;
+
+    // Getters et setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+
+---
+
+3. Créer un BeforeSaveCallback pour gérer l'audit
+
+Spring Data R2DBC permet d'utiliser des callbacks pour intervenir avant que les entités soient persistées ou mises à jour. Utilisez un BeforeSaveCallback pour configurer automatiquement les champs createdDate et updatedDate.
+
+Exemple de BeforeSaveCallback
+
+import org.springframework.data.r2dbc.mapping.event.BeforeSaveCallback;
+import org.springframework.data.relational.core.mapping.event.RelationalEventWithEntity;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDateTime;
+
+@Component
+public class AuditCallback implements BeforeSaveCallback<Auditable> {
+
+    @Override
+    public Mono<Auditable> onBeforeSave(Auditable entity, RelationalEventWithEntity<?> event) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Si c'est une nouvelle entité, initialisez les deux champs
+        if (entity.getCreatedDate() == null) {
+            entity.setCreatedDate(now);
+        }
+
+        // Toujours mettre à jour updatedDate
+        entity.setUpdatedDate(now);
+
+        return Mono.just(entity);
+    }
+}
+
+
+---
+
+4. Configurer Spring pour activer les callbacks
+
+Spring WebFlux avec R2DBC ne nécessite pas de configuration spéciale pour activer les callbacks. Tant que vous avez défini votre BeforeSaveCallback en tant que bean Spring (@Component), celui-ci sera automatiquement utilisé lors de l'enregistrement des entités.
+
+
+---
+
+5. Contrôle des dates en tests
+
+Si vous avez besoin de dates fixes pour vos tests, vous pouvez injecter une version simulée de l'horloge (par exemple avec un Clock).
+
+Exemple avec un service de date simulée
+
+import org.springframework.stereotype.Service;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+
+@Service
+public class DateTimeService {
+
+    private final Clock clock;
+
+    public DateTimeService(Clock clock) {
+        this.clock = clock;
+    }
+
+    public LocalDateTime now() {
+        return LocalDateTime.now(clock);
+    }
+}
+
+Utilisation dans le AuditCallback
+
+@Component
+public class AuditCallback implements BeforeSaveCallback<Auditable> {
+
+    private final DateTimeService dateTimeService;
+
+    public AuditCallback(DateTimeService dateTimeService) {
+        this.dateTimeService = dateTimeService;
+    }
+
+    @Override
+    public Mono<Auditable> onBeforeSave(Auditable entity, RelationalEventWithEntity<?> event) {
+        LocalDateTime now = dateTimeService.now();
+
+        if (entity.getCreatedDate() == null) {
+            entity.setCreatedDate(now);
+        }
+
+        entity.setUpdatedDate(now);
+        return Mono.just(entity);
+    }
+}
+
+Pendant les tests, vous pouvez injecter un Clock simulé pour reproduire des dates fixes.
+
+
+---
+
+6. Résultat final
+
+Avec cette configuration :
+
+Les champs createdDate et updatedDate sont automatiquement mis à jour pour toutes les entités héritant de Auditable.
+
+Vous pouvez tester votre logique avec des dates contrôlées en injectant un Clock simulé.
+
+La configuration est réactive et compatible avec WebFlux.
+
+
+
+---
+
+Si vous avez des questions supplémentaires ou souhaitez un projet d'exemple complet, faites-le-moi savoir !
+
