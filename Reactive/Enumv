@@ -1,0 +1,157 @@
+Pour valider une valeur Enum avec Jakarta Bean Validation, vous pouvez utiliser une annotation personnalisée combinée à Jakarta Validation API. Voici comment procéder :
+
+
+---
+
+1. Création d'une annotation personnalisée
+
+Créez une annotation pour valider que la valeur d'un champ correspond à une valeur valide d'un Enum.
+
+Exemple : Annotation personnalisée EnumValidator
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Constraint(validatedBy = EnumValidator.class)
+@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface EnumValid {
+    Class<? extends Enum<?>> value();
+
+    String message() default "Value is not valid for the specified enum";
+
+    Class<?>[] groups() default {};
+
+    Class<? extends Payload>[] payload() default {};
+}
+
+
+---
+
+2. Création du validateur
+
+Créez une classe qui implémente la logique de validation.
+
+Exemple : Validateur
+
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+
+import java.util.Arrays;
+
+public class EnumValidator implements ConstraintValidator<EnumValid, String> {
+
+    private Class<? extends Enum<?>> enumClass;
+
+    @Override
+    public void initialize(EnumValid annotation) {
+        this.enumClass = annotation.value();
+    }
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true; // Si le champ est optionnel, autorisez null
+        }
+        return Arrays.stream(enumClass.getEnumConstants())
+                     .map(Enum::name)
+                     .anyMatch(e -> e.equalsIgnoreCase(value));
+    }
+}
+
+
+---
+
+3. Définir un Enum
+
+Définissez une Enum pour vos valeurs autorisées.
+
+Exemple : Enum
+
+public enum Status {
+    ACTIVE,
+    INACTIVE,
+    PENDING
+}
+
+
+---
+
+4. Utilisation dans une classe
+
+Ajoutez l’annotation @EnumValid au champ ou paramètre que vous souhaitez valider.
+
+Exemple : Classe DTO
+
+import jakarta.validation.constraints.NotNull;
+
+public class UserDTO {
+
+    @NotNull(message = "Status cannot be null")
+    @EnumValid(value = Status.class, message = "Invalid status value")
+    private String status;
+
+    // Getters et Setters
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}
+
+
+---
+
+5. Validation
+
+Lors de la soumission d'une requête ou de la validation d'un objet, Jakarta Validation vérifiera automatiquement si le champ correspond à une valeur valide dans l'Enum.
+
+Exemple : Validation manuelle
+
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+
+        UserDTO user = new UserDTO();
+        user.setStatus("INVALID"); // Test avec une valeur non valide
+
+        Set violations = validator.validate(user);
+
+        if (!violations.isEmpty()) {
+            violations.forEach(v -> System.out.println(v.getMessage()));
+        } else {
+            System.out.println("Validation passed");
+        }
+    }
+}
+
+
+---
+
+6. Résultat attendu
+
+Si la valeur est une valeur valide de l'Enum, la validation passe.
+
+Si la valeur n’est pas valide, un message d’erreur est renvoyé, comme :
+Invalid status value.
+
+
+
+---
+
+Cette méthode est flexible et peut être utilisée pour tout type d'Enum avec des contraintes personnalisées. Vous avez également la possibilité d'améliorer la validation en fonction des besoins, comme l'autorisation ou non de valeurs nulles.
+
